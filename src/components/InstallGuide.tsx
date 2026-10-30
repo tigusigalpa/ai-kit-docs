@@ -1,4 +1,4 @@
-import { readmeLink, UPSTREAM } from '../data/upstream';
+import { CLEANUP_AND_FIX_PREVIEW, guideLink, imageAtLeast, UPSTREAM } from '../data/upstream';
 import type { Runner } from '../domain/config';
 import type { Shell } from '../domain/shell';
 import type { Language, T } from '../i18n';
@@ -49,7 +49,10 @@ function steps(runner: Runner, shell: Shell, t: T): Step[] {
     ];
     case 'docker': return [
       { title: t('Check the Docker context and daemon', 'Проверьте Docker-контекст и демон'), code: 'docker context show\ndocker version' },
-      { title: t('Pull the published image', 'Скачайте опубликованный образ'), code: `docker pull ${UPSTREAM.image}`, note: t('Published platform: linux/amd64. The image bundles Python, Git, the CLI and templates.', 'Платформа: linux/amd64. В образе есть Python, Git, CLI и шаблоны.') },
+      { title: t('Pull the published image', 'Скачайте опубликованный образ'), code: `docker pull ${UPSTREAM.image}`, note: imageAtLeast(CLEANUP_AND_FIX_PREVIEW)
+        ? t('Published platform: linux/amd64. The image bundles Python, Git, the CLI and templates.', 'Платформа: linux/amd64. В образе есть Python, Git, CLI и шаблоны.')
+        : t(`Published platform: linux/amd64. The image bundles Python, Git, the CLI and templates. The latest published image is ${UPSTREAM.imageVersion}; it does not include the ${CLEANUP_AND_FIX_PREVIEW} changes such as --docker-cleanup and the doctor --fix preview.`,
+          `Платформа: linux/amd64. В образе есть Python, Git, CLI и шаблоны. Последний опубликованный образ — ${UPSTREAM.imageVersion}; изменений ${CLEANUP_AND_FIX_PREVIEW}, например --docker-cleanup и preview для doctor --fix, в нём нет.`) },
       { title: t('Try the CLI', 'Проверьте CLI'), code: `docker run --rm ${UPSTREAM.image} --help`, note: t('Each command exits when done; there is no server to keep running.', 'Каждая команда завершается сама; держать сервер запущенным не нужно.') },
     ];
     case 'source': return [
@@ -86,7 +89,7 @@ export function InstallGuide({ runner, shell, onRunner, onShell, t, language }: 
             <li>{t('The installer works offline and writes nothing until you add ', 'Установщик работает офлайн и ничего не пишет, пока вы не добавите ')}<code>--apply</code>.</li>
             <li>{t('Updating the CLI does not touch projects: update each project with its own preview and apply.', 'Обновление CLI не меняет проекты: каждый проект обновляется своим preview и apply.')}</li>
           </ul>
-          <a className="text-link" href={readmeLink('windows-installation-and-troubleshooting')} target="_blank" rel="noopener noreferrer">{t('Windows troubleshooting guide', 'Решение проблем в Windows')}<Icon name="external" size={14}/></a>
+          <a className="text-link" href={guideLink('WINDOWS')} target="_blank" rel="noopener noreferrer">{t('Windows troubleshooting guide', 'Решение проблем в Windows')}<Icon name="external" size={14}/></a>
         </div>
         {runner === 'aikit' && shell === 'powershell' && <details className="aside-card path-fix">
           <summary>{t('“aikit is not recognized”: refresh PATH in this window', '«aikit не распознан»: обновить PATH в этом окне')}</summary>

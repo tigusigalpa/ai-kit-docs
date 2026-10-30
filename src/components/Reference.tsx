@@ -1,12 +1,12 @@
 import { useId, useState } from 'react';
 import { AGENTS, EXTRA_INFO, EXTRAS, PRESET_EXTRAS, PRESET_INFO, PRESETS, settingsKey, type Text } from '../data/catalog';
-import { readmeLink } from '../data/upstream';
+import { guideLink } from '../data/upstream';
 import { pick, type Language, type T } from '../i18n';
 import { Icon } from './Icon';
 
-interface Flag { flag: string; value: Text; does: Text; fallback: Text }
+export interface Flag { flag: string; value: Text; does: Text; fallback: Text }
 
-const MAIN_FLAGS: Flag[] = [
+export const MAIN_FLAGS: Flag[] = [
   { flag: 'TARGET', value: ['Directory, e.g. . or "C:\\Projects\\my-app"', 'Папка, например . или "C:\\Projects\\my-app"'], does: ['The application to initialize or update. Quote paths with spaces.', 'Приложение, которое нужно настроить или обновить. Пути с пробелами — в кавычках.'], fallback: ['Required every time; never inferred.', 'Обязателен всегда; не угадывается.'] },
   { flag: '--apply', value: ['Switch', 'Переключатель'], does: ['Writes the plan: instructions, adapters, settings and the ignore block.', 'Записывает план: инструкции, адаптеры, настройки и блок ignore.'], fallback: ['Omitted: preview only, nothing written.', 'Без него: только preview, ничего не пишется.'] },
   { flag: '--dry-run', value: ['Switch', 'Переключатель'], does: ['Explicitly requests the same read-only preview.', 'Явно запрашивает тот же preview только для чтения.'], fallback: ['Cannot be combined with --apply.', 'Нельзя сочетать с --apply.'] },
@@ -16,20 +16,25 @@ const MAIN_FLAGS: Flag[] = [
   { flag: '--agent', value: ['One client; repeat the flag', 'Один клиент; повторяйте флаг'], does: ['Selects client adapters, e.g. --agent codex --agent claude.', 'Выбирает адаптеры клиентов, например --agent codex --agent claude.'], fallback: ['Fresh: codex; upgrade: saved. An explicit list replaces it.', 'Новая: codex; обновление: сохранённый. Явный список заменяет его.'] },
   { flag: '--chat-language', value: ['Name up to 60 characters', 'Название до 60 символов'], does: ['Language of chat replies and plans. Project files stay English.', 'Язык ответов и планов в чате. Файлы проекта — на английском.'], fallback: ['Fresh: Russian; upgrade: saved.', 'Новая: Russian; обновление: сохранённый.'] },
   { flag: '--conventions', value: ['owner | standard', 'owner | standard'], does: ['Stack-specific coding preferences; never replaces Core security rules.', 'Предпочтения по стеку; не заменяют правила безопасности Core.'], fallback: ['Fresh: owner; upgrade: saved.', 'Новая: owner; обновление: сохранённые.'] },
+  { flag: '--docker-cleanup', value: ['maximum | keep-cache', 'maximum | keep-cache'],
+    does: ['How agents clean up after each Docker task. maximum removes every eligible disposable resource, including the dedicated builder cache, and reclaims host resources. keep-cache still removes task-owned containers, networks, volumes and superseded test images but keeps the project builder cache; host RAM/disk only on request or pressure.',
+      'Как агенты убирают за собой после каждой Docker-задачи. maximum удаляет все подходящие одноразовые ресурсы, включая кэш выделенного builder, и возвращает ресурсы хоста. keep-cache всё равно удаляет контейнеры, сети, тома и устаревшие тестовые образы задачи, но сохраняет кэш builder проекта; RAM и диск хоста — только по запросу или при нехватке.'],
+    fallback: ['Fresh: maximum (an absent setting means maximum). Saved as docker_cleanup; upgrade: saved.', 'Новая: maximum (без настройки действует maximum). Сохраняется как docker_cleanup; обновление: сохранённый.'] },
   { flag: '--preset', value: ['minimal | solo | team | strict', 'minimal | solo | team | strict'], does: ['Applies a bundle of sharing and managed extras; can turn managed extras off.', 'Применяет набор режима и управляемых extras; может их выключить.'], fallback: ['Omitted: nothing reapplied. Explicit flags win.', 'Без него: ничего не переприменяется. Явные флаги важнее.'] },
   { flag: '--accept-local', value: ['Managed path relative to TARGET; repeatable', 'Управляемый путь от TARGET; можно повторять'], does: ['Records an explicitly reviewed semantic merge without replacing the file.', 'Фиксирует проверенное слияние без замены файла.'], fallback: ['Not a force-overwrite; not for project-owned files.', 'Не принудительная перезапись; не для файлов проекта.'] },
   { flag: '-h, --help', value: ['Switch', 'Переключатель'], does: ['Prints install options and exits.', 'Печатает опции install и завершает работу.'], fallback: ['aikit --help lists commands.', 'aikit --help — список команд.'] },
 ];
 
+export const MODULE_FLAGS: Flag[] = EXTRAS.map(extra => ({
+  flag: `--with-${extra}`, value: ['Switch', 'Переключатель'], does: EXTRA_INFO[extra].adds,
+  fallback: [`Saved as ${settingsKey(extra)}. ${EXTRA_INFO[extra].note[0]}`, `Сохраняется как ${settingsKey(extra)}. ${EXTRA_INFO[extra].note[1]}`],
+}));
+
 export function Reference({ t, language }: { t: T; language: Language }) {
   const ids = useId();
   const [query, setQuery] = useState('');
-  const moduleFlags: Flag[] = EXTRAS.map(extra => ({
-    flag: `--with-${extra}`, value: ['Switch', 'Переключатель'], does: EXTRA_INFO[extra].adds,
-    fallback: [`Saved as ${settingsKey(extra)}. ${EXTRA_INFO[extra].note[0]}`, `Сохраняется как ${settingsKey(extra)}. ${EXTRA_INFO[extra].note[1]}`],
-  }));
   const needle = query.trim().toLowerCase();
-  const rows = [...MAIN_FLAGS, ...moduleFlags].filter(row => !needle || [row.flag, ...row.value, ...row.does, ...row.fallback].join(' ').toLowerCase().includes(needle));
+  const rows = [...MAIN_FLAGS, ...MODULE_FLAGS].filter(row => !needle || [row.flag, ...row.value, ...row.does, ...row.fallback].join(' ').toLowerCase().includes(needle));
   return <section id="reference" className="section reference-section" aria-labelledby="reference-title">
     <div className="section-head">
       <span className="eyebrow">{t('REFERENCE', 'СПРАВОЧНИК')}</span>
@@ -40,7 +45,7 @@ export function Reference({ t, language }: { t: T; language: Language }) {
       <label className="search" htmlFor={`${ids}-search`}><span className="sr-only">{t('Filter flags', 'Фильтр флагов')}</span>
         <input id={`${ids}-search`} className="text-input" type="search" placeholder={t('Filter: agent, guards, team, settings…', 'Фильтр: agent, guards, team, settings…')} value={query} onChange={event => setQuery(event.target.value)}/>
       </label>
-      <span className="result-count" role="status">{rows.length} / {MAIN_FLAGS.length + moduleFlags.length}</span>
+      <span className="result-count" role="status">{rows.length} / {MAIN_FLAGS.length + MODULE_FLAGS.length}</span>
     </div>
     <div className="table-wrap">
       <table className="flag-table">
@@ -72,8 +77,8 @@ export function Reference({ t, language }: { t: T; language: Language }) {
         <p className="token-list">{[...AGENTS].sort().map(agent => <code key={agent}>{agent}</code>)}</p>
         <p className="ref-note">{t('Lowercase. Repeat the flag: --agent codex --agent claude, not --agent codex,claude.', 'В нижнем регистре. Повторяйте флаг: --agent codex --agent claude, а не --agent codex,claude.')}</p>
         <h3>{t('Exit codes', 'Коды выхода')}</h3>
-        <dl className="exit-codes"><div><dt>0</dt><dd>{t('success', 'успех')}</dd></div><div><dt>1</dt><dd>{t('refusal', 'отказ')}</dd></div><div><dt>2</dt><dd>{t('unresolved conflicts', 'неразрешённые конфликты')}</dd></div></dl>
-        <a className="text-link" href={readmeLink('installer-flags-and-options')} target="_blank" rel="noopener noreferrer">{t('Full README reference', 'Полный справочник в README')}<Icon name="external" size={13}/></a>
+        <dl className="exit-codes"><div><dt>0</dt><dd>{t('success', 'успех')}</dd></div><div><dt>1</dt><dd>{t('refusal; with --check also doctor errors after a successful apply', 'отказ; с --check — также ошибки doctor после успешного apply')}</dd></div><div><dt>2</dt><dd>{t('unresolved conflicts', 'неразрешённые конфликты')}</dd></div></dl>
+        <a className="text-link" href={guideLink('INSTALLER_FLAGS')} target="_blank" rel="noopener noreferrer">{t('Full installer flag guide', 'Полное руководство по флагам')}<Icon name="external" size={13}/></a>
       </div>
     </div>
   </section>;

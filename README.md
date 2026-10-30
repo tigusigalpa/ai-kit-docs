@@ -4,14 +4,14 @@ A static React + TypeScript site for [AI-KIT](https://github.com/tigusigalpa/ai-
 
 Live site: <https://tigusigalpa.github.io/ai-kit-docs/>
 
-The CLI contract is pinned to **AI-KIT 1.4.5**, tag `v1.4.5`, commit `e569b7b9ef81edcc2d5168e08ffd5336fff27186` ([src/data/upstream.ts](src/data/upstream.ts)).
+The CLI contract is pinned to **AI-KIT 1.4.6**, tag `v1.4.6`, commit `763bef0dfe600bac6b2a131d254061abcf0ffb6a` ([src/data/upstream.ts](src/data/upstream.ts)). The latest published Docker image is still `1.4.5`, recorded separately as `imageVersion`; Docker commands use that tag and avoid options it does not accept.
 
 ## What the site covers
 
-- **Installation** for five runners — `aikit` from pip/pipx, `python -m aikit.aikit_cli`, an isolated virtual environment, the `tigusigalpa/ai-kit:1.4.5` Docker image and a source checkout — each for Windows PowerShell and Linux/macOS Bash.
-- **Configurator** for a new installation or an update: target folder, 11 AI clients, presets, sharing mode, chat language, conventions, all eleven `--with-*` modules, `--interactive`, `--check` and `--accept-local`. It shows the preview and apply commands, Docker session setup, the bootstrap step per client, the resulting `ai-kit/settings.json` and the files a preview lists for an empty folder.
+- **Installation** for five runners — `aikit` from pip/pipx, `python -m aikit.aikit_cli`, an isolated virtual environment, the published `tigusigalpa/ai-kit:1.4.5` Docker image and a source checkout — each for Windows PowerShell and Linux/macOS Bash.
+- **Configurator** for a new installation or an update: target folder, 11 AI clients, presets, sharing mode, chat language, conventions, Docker cleanup mode, all eleven `--with-*` modules, `--interactive`, `--check` and `--accept-local`. It shows the preview and apply commands, Docker session setup, the bootstrap step per client, the resulting `ai-kit/settings.json` and the files a preview lists for an empty folder.
 - **Share links**: the configuration is encoded in the URL query only.
-- **More commands**: `doctor`, `route`, `context select`, `providers` and `check` with the same runner.
+- **More commands**: `doctor` (including the `--fix` preview and `--fix --apply` repair), `route`, `context select`, `providers` and `check` with the same runner.
 - **Reference**: every installer flag with a filter, the preset matrix, valid agent names and exit codes; features and FAQ.
 - English and Russian, light and dark themes, bundled fonts (Onest, JetBrains Mono), no analytics or remote requests.
 
@@ -38,13 +38,13 @@ Production files are written to `dist/`.
 
 - `tests/command.test.ts`, `tests/config.test.ts` — command generation, option resolution, validation and share links.
 - `tests/shell.test.ts` — passes quoted values through real Bash and PowerShell, when installed, and checks the exact arguments a program receives.
-- `tests/upstream.test.ts` — when `tmp/upstream-ai-kit` holds the pinned AI-KIT checkout, runs 21 generated option sets through the real `scripts/install.py` preview (mode, preset, extras and the full list of writes must match the site's model) and 8 through `--apply` in temporary folders (the written `settings.json` must equal the preview, key order included).
+- `tests/upstream.test.ts` — when `tmp/upstream-ai-kit` holds the pinned AI-KIT checkout, runs 21 generated option sets through the real `scripts/install.py` preview (mode, preset, extras and the full list of writes must match the site's model) and 8 through `--apply` in temporary folders (the written `settings.json` must equal the preview, key order included). It also compares the flag reference with the options and choices in the installer's `--help` usage and checks that `doctor --fix` writes nothing, `--fix --apply` restores a removed file and `--apply` alone is refused.
 
 To run the upstream checks locally:
 
 ```sh
 git clone https://github.com/tigusigalpa/ai-kit.git tmp/upstream-ai-kit
-git -C tmp/upstream-ai-kit checkout --detach e569b7b9ef81edcc2d5168e08ffd5336fff27186
+git -C tmp/upstream-ai-kit checkout --detach 763bef0dfe600bac6b2a131d254061abcf0ffb6a
 npm test
 ```
 
@@ -56,8 +56,8 @@ python -I scripts/footprint.py tmp/upstream-ai-kit > src/data/footprint.json
 
 ## Updating to a new AI-KIT release
 
-1. Check out the new tag in `tmp/upstream-ai-kit` and review `scripts/install.py`, `integrations/agents.json` and the README flag tables for changes.
-2. Update `src/data/upstream.ts`, the catalog in `src/data/catalog.ts` and `AIKIT_COMMIT` in `.github/workflows/pages.yml`.
+1. Check out the new tag in `tmp/upstream-ai-kit` and review `scripts/install.py`, `scripts/doctor.py`, `integrations/agents.json` and `docs/guide/INSTALLER_FLAGS.md` for changes.
+2. Update `src/data/upstream.ts` (set `imageVersion` only to an image tag that is actually published on Docker Hub), the catalog in `src/data/catalog.ts`, the flag rows in `src/components/Reference.tsx` and `AIKIT_COMMIT` in `.github/workflows/pages.yml`.
 3. Regenerate `src/data/footprint.json` and run `npm run check`.
 
 ## Deployment

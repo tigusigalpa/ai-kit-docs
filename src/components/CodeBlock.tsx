@@ -37,10 +37,10 @@ export function CodeBlock({ code, t, title, lang, step, tone, children }: {
   </figure>;
 }
 
-export function Segmented<V extends string>({ label, value, options, onChange, name }: {
-  label: string; name: string; value: V; options: readonly { value: V; label: ReactNode; hint?: string }[]; onChange: (value: V) => void;
+export function Segmented<V extends string>({ label, value, options, onChange, name, invalid }: {
+  label: string; name: string; value: V; options: readonly { value: V; label: ReactNode; hint?: string }[]; onChange: (value: V) => void; invalid?: boolean;
 }) {
-  return <div className="segmented" role="radiogroup" aria-label={label}>
+  return <div className="segmented" role="radiogroup" aria-label={label} aria-invalid={invalid || undefined}>
     {options.map(option => <label key={option.value} className="segmented-option" data-checked={option.value === value} title={option.hint}>
       <input type="radio" name={name} value={option.value} checked={option.value === value} onChange={() => onChange(option.value)}/>
       <span>{option.label}</span>

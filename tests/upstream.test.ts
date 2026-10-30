@@ -5,7 +5,8 @@ import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve as resolvePath } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
-import { AGENTS, EXTRAS, PRESETS, type Agent, type Extra } from '../src/data/catalog';
+import { MAIN_FLAGS, MODULE_FLAGS } from '../src/components/Reference';
+import { AGENTS, DOCKER_CLEANUP, EXTRAS, PRESETS, type Agent, type Extra } from '../src/data/catalog';
 import { UPSTREAM } from '../src/data/upstream';
 import { installOptions } from '../src/domain/command';
 import { freshDefaults, resolve, settingsPreview, type Config } from '../src/domain/config';
@@ -13,6 +14,7 @@ import { footprint } from '../src/domain/footprint';
 
 const upstream = resolvePath(process.env.AIKIT_UPSTREAM ?? 'tmp/upstream-ai-kit');
 const installer = join(upstream, 'scripts', 'install.py');
+const doctor = join(upstream, 'scripts', 'doctor.py');
 const available = existsSync(installer);
 const python = process.env.PYTHON ?? (process.platform === 'win32' ? 'python' : 'python3');
 const work = available ? mkdtempSync(join(tmpdir(), 'ai-kit-docs-')) : '';
@@ -38,6 +40,7 @@ function* sample(count: number): Generator<Config> {
       agents: AGENTS.filter(() => next() < 0.3) as Agent[],
       extras: EXTRAS.filter(() => next() < 0.3) as Extra[],
       conventions: next() < 0.5 ? '' : 'standard',
+      dockerCleanup: next() < 0.5 ? '' : DOCKER_CLEANUP[Math.floor(next() * DOCKER_CLEANUP.length)],
     };
   }
 }
@@ -45,8 +48,8 @@ function* sample(count: number): Generator<Config> {
 const scenarios: [string, Config][] = [
   ['defaults', freshDefaults()],
   ['bare', { ...freshDefaults(), preset: '', agents: [] }],
-  ['team bundle', { ...freshDefaults(), preset: 'team', extras: ['data-guards', 'web-design', 'context7'], chatLanguage: 'English', conventions: 'standard' }],
-  ['strict override', { ...freshDefaults(), preset: 'strict', mode: 'team', agents: ['claude'], extras: ['orchestration', 'strix', 'security-audit'] }],
+  ['team bundle', { ...freshDefaults(), preset: 'team', extras: ['data-guards', 'web-design', 'context7'], chatLanguage: 'English', conventions: 'standard', dockerCleanup: 'keep-cache' }],
+  ['strict override', { ...freshDefaults(), preset: 'strict', mode: 'team', agents: ['claude'], extras: ['orchestration', 'strix', 'security-audit'], dockerCleanup: 'maximum' }],
   ['minimal plus explicit', { ...freshDefaults(), preset: 'minimal', agents: [...AGENTS], extras: ['native-settings', 'ci'] }],
   ['team with private', { ...freshDefaults(), preset: 'team', mode: 'private', agents: ['codex', 'cursor', 'gemini', 'aider'] }],
   ['unicode language', { ...freshDefaults(), chatLanguage: 'Português do Brasil' }],
@@ -76,5 +79,39 @@ describe.skipIf(!available)(`AI-KIT ${UPSTREAM.version} installer`, () => {
     expect(status).toBe(0);
     const written = readFileSync(join(target, 'ai-kit', 'settings.json'), 'utf8');
     expect(JSON.stringify(JSON.parse(written))).toBe(JSON.stringify(settingsPreview(config)));
+  });
+
+  it('accepts exactly the options in the flag reference', () => {
+    const help = execFileSync(python, ['-I', installer, '--help'], { encoding: 'utf8', env: { ...process.env, NO_COLOR: '1', COLUMNS: '200' } })
+      .replaceAll('\r\n', '\n');
+    const usage = help.slice(0, help.indexOf('\n\n'));
+    const accepted = [...usage.matchAll(/(?<=[\s[|])(-[a-z]|--[a-z0-9-]+)(?=[\s\]|])/g)].map(match => match[1]).sort();
+    const documented = [...MAIN_FLAGS, ...MODULE_FLAGS].map(row => row.flag).filter(flag => flag !== 'TARGET')
+      .map(flag => flag === '-h, --help' ? '-h' : flag).sort();
+    expect(documented).toEqual(accepted);
+    expect(MAIN_FLAGS.length + MODULE_FLAGS.length).toBe(24);
+    const choices = Object.fromEntries([...usage.matchAll(/(--[a-z-]+) \{([^}]+)\}/g)].map(match => [match[1], match[2].split(',')]));
+    expect(choices['--docker-cleanup']).toEqual([...DOCKER_CLEANUP]);
+    expect(choices['--preset']).toEqual([...PRESETS]);
+    expect(choices['--agent']).toEqual([...AGENTS].sort());
+  });
+
+  it('doctor --fix previews the repair, --fix --apply writes it and --apply alone is refused', () => {
+    const { status, target } = run(freshDefaults(), true);
+    expect(status).toBe(0);
+    const core = join(target, 'ai-kit', 'CORE.md');
+    rmSync(core);
+    const doctorRun = (...args: string[]) => spawnSync(python, ['-I', doctor, target, ...args], { encoding: 'utf8' });
+    const preview = doctorRun('--fix');
+    expect(JSON.parse(preview.stdout).fix).toMatchObject({ preview: true, applied: false });
+    expect(JSON.parse(preview.stdout).fix.writes).toContain('ai-kit/CORE.md');
+    expect(existsSync(core)).toBe(false);
+    const refused = doctorRun('--apply');
+    expect(refused.status).toBe(2);
+    expect(refused.stderr).toContain('--apply requires --fix');
+    expect(existsSync(core)).toBe(false);
+    const applied = doctorRun('--fix', '--apply');
+    expect(JSON.parse(applied.stdout).fix).toMatchObject({ preview: false });
+    expect(existsSync(core)).toBe(true);
   });
 });

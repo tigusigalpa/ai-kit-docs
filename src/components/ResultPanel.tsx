@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { AGENT_INFO, type Agent } from '../data/catalog';
+import { CLEANUP_AND_FIX_PREVIEW, imageAtLeast, UPSTREAM } from '../data/upstream';
 import { installCommand, sessionSetup, upgradeCommand } from '../domain/command';
 import { hasErrors, resolve, settingsPreview, type Config, type Issue, type Runner } from '../domain/config';
 import { footprint, footprintVersion } from '../domain/footprint';
@@ -75,14 +76,17 @@ export function ResultPanel({ config, runner, shell, issues, t, language, onRese
           <CodeBlock t={t} code={installCommand(config, runner, shell, 'preview')} lang={lang} step="01" title={t('Preview — writes nothing', 'Preview — ничего не пишет')}>
             {t('Review writes, conflicts, adapter_conflicts, warnings and extras in the JSON plan.', 'Проверьте в JSON-плане writes, conflicts, adapter_conflicts, warnings и extras.')}</CodeBlock>
           <CodeBlock t={t} code={installCommand(config, runner, shell, 'apply')} lang={lang} step="02" tone="apply" title={t('Apply the reviewed plan', 'Применить проверенный план')}>
-            {t('Exit codes: 0 success, 1 refusal, 2 unresolved conflicts. Existing project documents are never overwritten.', 'Коды выхода: 0 успех, 1 отказ, 2 неразрешённые конфликты. Существующие документы проекта не перезаписываются.')}</CodeBlock>
+            {config.check
+              ? t('Exit codes: 0 success, 1 refusal or doctor errors after the writes succeeded, 2 unresolved conflicts. Existing project documents are never overwritten.', 'Коды выхода: 0 успех, 1 отказ или ошибки doctor после успешной записи, 2 неразрешённые конфликты. Существующие документы проекта не перезаписываются.')
+              : t('Exit codes: 0 success, 1 refusal, 2 unresolved conflicts. Existing project documents are never overwritten.', 'Коды выхода: 0 успех, 1 отказ, 2 неразрешённые конфликты. Существующие документы проекта не перезаписываются.')}</CodeBlock>
           <Bootstrap agents={resolved.agents} t={t}/>
         </div>)}
       {tab === 'settings' && <div className="command-stack">
         <CodeBlock t={t} code={settings} lang="JSON" title="ai-kit/settings.json"/>
         <p className="panel-note">{config.scenario === 'update'
           ? t('Shown for a fresh installation. On update, omitted values keep what is already saved.', 'Показано для новой установки. При обновлении неуказанные значения остаются как сохранено.')
-          : t('Exactly what a fresh apply writes, in the same key order. Module selections persist here.', 'Ровно то, что запишет новая установка, в том же порядке ключей. Выбор модулей сохраняется здесь.')}</p>
+          : t('Exactly what a fresh apply writes, in the same key order. Module selections persist here.', 'Ровно то, что запишет новая установка, в том же порядке ключей. Выбор модулей сохраняется здесь.')}
+          {runner === 'docker' && !imageAtLeast(CLEANUP_AND_FIX_PREVIEW) && t(` The ${UPSTREAM.image} image writes no docker_cleanup key; absent means maximum.`, ` Образ ${UPSTREAM.image} не записывает ключ docker_cleanup; без него действует maximum.`)}</p>
       </div>}
       {tab === 'files' && <div className="command-stack">
         <FileTree files={files} t={t}/>

@@ -1,4 +1,5 @@
-import { AGENTS, EXTRAS, PRESET_EXTRAS, PRESET_INFO, settingsKey, type Agent, type Extra, type Mode, type Preset } from '../data/catalog';
+import { AGENTS, EXTRAS, PRESET_EXTRAS, PRESET_INFO, settingsKey, type Agent, type DockerCleanup, type Extra, type Mode, type Preset } from '../data/catalog';
+import { CLEANUP_AND_FIX_PREVIEW, imageAtLeast } from '../data/upstream';
 import { hasControlCharacters, type Shell } from './shell';
 
 export const RUNNERS = ['aikit', 'module', 'venv', 'docker', 'source'] as const;
@@ -14,6 +15,7 @@ export interface Config {
   agents: Agent[];
   chatLanguage: string;
   conventions: Conventions | '';
+  dockerCleanup: DockerCleanup | '';
   extras: Extra[];
   interactive: boolean;
   check: boolean;
@@ -22,7 +24,7 @@ export interface Config {
 
 export const freshDefaults = (): Config => ({
   scenario: 'fresh', target: '.', preset: 'solo', mode: '', agents: ['codex', 'claude'], chatLanguage: '',
-  conventions: '', extras: [], interactive: false, check: true, acceptLocal: [],
+  conventions: '', dockerCleanup: '', extras: [], interactive: false, check: true, acceptLocal: [],
 });
 
 export const updateDefaults = (): Config => ({ ...freshDefaults(), scenario: 'update', preset: '', agents: [] });
@@ -38,6 +40,8 @@ export interface Resolved {
   agents: Agent[] | null;
   chatLanguage: string | null;
   conventions: Conventions | null;
+  /** Docker cleanup mode; null keeps the saved value (an absent setting means maximum). */
+  dockerCleanup: DockerCleanup | null;
   /** Extras enabled by this run: explicit flags plus preset bundle. */
   extras: Extra[];
   presetExtras: readonly Extra[];
@@ -64,6 +68,7 @@ export function resolve(config: Config): Resolved {
     agents: config.agents.length ? sortAgents(config.agents) : fresh ? ['codex'] : null,
     chatLanguage: config.chatLanguage.trim() ? config.chatLanguage : fresh ? 'Russian' : null,
     conventions: config.conventions || (fresh ? 'owner' : null),
+    dockerCleanup: config.dockerCleanup || (fresh ? 'maximum' : null),
     extras, presetExtras, presetDisabled, extraFlags,
   };
 }
@@ -76,6 +81,7 @@ export function settingsPreview(config: Config): Record<string, unknown> {
     chat_language: resolved.chatLanguage ?? 'Russian',
     sharing_mode: resolved.mode ?? 'private',
     conventions: resolved.conventions ?? 'owner',
+    docker_cleanup: resolved.dockerCleanup ?? 'maximum',
     upstream: { url: 'https://github.com/tigusigalpa/ai-kit', ref: 'main', source_directory: 'template' },
   };
   for (const extra of EXTRAS) {
@@ -139,6 +145,12 @@ export function validate(config: Config, runner: Runner, shell: Shell): Issue[] 
   }
   if (resolved.extras.includes('ci') && resolved.mode === 'private') issues.push({ severity: 'info', code: 'ci-private' });
   if (config.interactive && runner === 'docker') issues.push({ severity: 'info', code: 'docker-interactive' });
+  // The published image can be older than the pinned release; argparse rejects options it does not know.
+  if (runner === 'docker' && !imageAtLeast(CLEANUP_AND_FIX_PREVIEW)) {
+    issues.push(config.dockerCleanup
+      ? { severity: 'error', code: 'docker-cleanup-image', field: 'dockerCleanup' }
+      : { severity: 'info', code: 'docker-image' });
+  }
   return issues;
 }
 

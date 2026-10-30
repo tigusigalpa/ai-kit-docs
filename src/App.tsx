@@ -88,7 +88,7 @@ export default function App() {
       <section className="hero">
         <div className="hero-copy">
           <a className="release-chip" href={`${UPSTREAM.repository}/blob/${UPSTREAM.tag}/CHANGELOG.md`} target="_blank" rel="noopener noreferrer">
-            <span className="badge">v{UPSTREAM.version}</span>{t('PyPI and Docker Hub · released ', 'PyPI и Docker Hub · релиз ')}{UPSTREAM.released}<Icon name="arrow" size={14}/>
+            <span className="badge">v{UPSTREAM.version}</span>{t('GitHub release ', 'релиз на GitHub ')}{UPSTREAM.released}{t(' · Docker image ', ' · Docker-образ ')}{UPSTREAM.imageVersion}<Icon name="arrow" size={14}/>
           </a>
           <h1>{t('Stop re-explaining your project to ', 'Хватит заново объяснять проект ')}<span className="highlight">{t('every new AI chat.', 'каждому новому AI-чату.')}</span></h1>
           <p className="lead">{t('AI-KIT gives your coding agents persistent project memory, expert stack rules, adaptive model routing and native configuration for 11 AI clients. One offline installer, zero dependencies, every change previewed before you apply it.',
@@ -155,8 +155,9 @@ export default function App() {
 
       <div className="release-note">
         <span className="badge">v{UPSTREAM.version}</span>
-        <p>{t('New: mandatory maximum Docker cleanup and host reclamation after every Docker task, plus a detailed Windows guide for setup, PATH and common errors.',
-          'Новое: обязательная максимальная очистка Docker и возврат ресурсов хоста после каждой Docker-задачи, а также подробное руководство для Windows: установка, PATH и частые ошибки.')}</p>
+        <p>{t('New: identical LF text in Git, PyPI and Docker distributions; an install-free --with-ci check of committed files; the docker_cleanup setting (maximum or keep-cache); doctor --fix now previews and --fix --apply writes; SIGTERM handling as container PID 1; hash-pinned release builds.',
+          'Новое: одинаковый текст с LF в Git, PyPI и Docker; проверка --with-ci закоммиченных файлов без установки; настройка docker_cleanup (maximum или keep-cache); doctor --fix теперь показывает preview, а --fix --apply записывает; обработка SIGTERM как PID 1 в контейнере; сборка релизов инструментами, закреплёнными по хешу.')}
+          {UPSTREAM.imageVersion !== UPSTREAM.version && t(` The published Docker image is still ${UPSTREAM.imageVersion}.`, ` Опубликованный Docker-образ — по-прежнему ${UPSTREAM.imageVersion}.`)}</p>
         <a className="text-link" href={`${UPSTREAM.repository}/blob/${UPSTREAM.tag}/CHANGELOG.md`} target="_blank" rel="noopener noreferrer">{t('Changelog', 'Что нового')}<Icon name="external" size={13}/></a>
       </div>
 

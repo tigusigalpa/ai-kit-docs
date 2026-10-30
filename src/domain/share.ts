@@ -1,4 +1,4 @@
-import { AGENTS, EXTRAS, PRESETS, type Agent, type Extra, type Preset } from '../data/catalog';
+import { AGENTS, DOCKER_CLEANUP, EXTRAS, PRESETS, type Agent, type DockerCleanup, type Extra, type Preset } from '../data/catalog';
 import { freshDefaults, RUNNERS, sortAgents, sortExtras, updateDefaults, type Config, type Runner } from './config';
 import type { Shell } from './shell';
 
@@ -17,6 +17,7 @@ export function encode({ config, runner, shell }: Shared): string {
   if (config.agents.join() !== base.agents.join()) params.set('agents', config.agents.join(',') || 'none');
   if (config.chatLanguage) params.set('lang', config.chatLanguage);
   if (config.conventions) params.set('conv', config.conventions);
+  if (config.dockerCleanup) params.set('cleanup', config.dockerCleanup);
   if (config.extras.length) params.set('with', config.extras.join(','));
   if (config.interactive) params.set('interactive', '1');
   if (!config.check) params.set('check', '0');
@@ -45,6 +46,8 @@ export function decode(query: string): Shared | null {
   if (params.has('lang')) config.chatLanguage = text('lang', 80);
   const conventions = params.get('conv');
   if (conventions === 'owner' || conventions === 'standard') config.conventions = conventions;
+  const cleanup = params.get('cleanup');
+  if ((DOCKER_CLEANUP as readonly string[]).includes(cleanup ?? '')) config.dockerCleanup = cleanup as DockerCleanup;
   config.extras = sortExtras(list<Extra>(params.get('with'), EXTRAS));
   config.interactive = params.get('interactive') === '1';
   config.check = params.get('check') !== '0';

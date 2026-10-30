@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { installCommand, installOptions, invocation, sessionSetup, upgradeCommand } from '../src/domain/command';
+import { doctorFix, installCommand, installOptions, invocation, sessionSetup, upgradeCommand } from '../src/domain/command';
+import { UPSTREAM } from '../src/data/upstream';
 import { freshDefaults, updateDefaults, type Config } from '../src/domain/config';
 import { quote } from '../src/domain/shell';
 
@@ -19,6 +20,12 @@ describe('install commands', () => {
     const value = config({ preset: 'team', mode: 'private', agents: ['claude', 'codex', 'cursor'], chatLanguage: 'English', conventions: 'standard', extras: ['web-design', 'guards', 'context7'], interactive: true });
     expect(installOptions(value)).toEqual(['--preset', 'team', '--mode', 'private', '--agent', 'codex', '--agent', 'claude', '--agent', 'cursor',
       '--chat-language', 'English', '--conventions', 'standard', '--with-context7', '--with-web-design', '--interactive']);
+  });
+
+  it('emits --docker-cleanup only for an explicit choice, after the conventions', () => {
+    expect(installOptions(config())).not.toContain('--docker-cleanup');
+    expect(installOptions(config({ preset: '', agents: [], conventions: 'owner', dockerCleanup: 'keep-cache' }))).toEqual(['--conventions', 'owner', '--docker-cleanup', 'keep-cache']);
+    expect(installCommand({ ...updateDefaults(), dockerCleanup: 'maximum' }, 'aikit', 'posix', 'apply')).toBe('aikit install . --docker-cleanup maximum --apply --check');
   });
 
   it('drops a mode equal to the preset mode and extras the preset already enables', () => {
@@ -51,6 +58,22 @@ describe('install commands', () => {
     expect(installCommand(value, 'docker', 'posix', 'apply')).toBe(
       'docker run "${runtime[@]}" --mount "type=bind,source=$app_path,target=/workspace" "$image" install /workspace --agent codex --with-web-design --apply --check');
     expect(installCommand({ ...value, interactive: true }, 'docker', 'posix', 'preview')).toContain('docker run "${runtime[@]}" -it --mount');
+  });
+
+  it('previews a doctor repair plan before writing it', () => {
+    expect(doctorFix('aikit', 'posix', '.')).toEqual({ legacyImage: false, preview: 'aikit doctor . --fix', apply: 'aikit doctor . --fix --apply' });
+    expect(doctorFix('module', 'powershell', 'C:\\My App').apply).toBe("python -m aikit.aikit_cli doctor 'C:\\My App' --fix --apply");
+    expect(doctorFix('source', 'posix', '/srv/app').preview).toBe('python3 aikit_cli.py doctor /srv/app --fix');
+  });
+
+  it('uses commands the published Docker image accepts for the doctor repair', () => {
+    // Image 1.4.5 applies --fix directly and rejects --apply; its installer preview shows the same plan.
+    expect(UPSTREAM.image).toBe('tigusigalpa/ai-kit:1.4.5');
+    expect(doctorFix('docker', 'posix', '.')).toEqual({
+      legacyImage: true,
+      preview: 'docker run "${runtime[@]}" --mount "type=bind,source=$app_path,target=/workspace,readonly" "$image" install /workspace',
+      apply: 'docker run "${runtime[@]}" --mount "type=bind,source=$app_path,target=/workspace" "$image" doctor /workspace --fix',
+    });
   });
 
   it('prepares session variables only where needed', () => {
