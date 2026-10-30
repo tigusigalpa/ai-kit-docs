@@ -1,0 +1,567 @@
+{
+ "modes": {
+  "private": {
+   "agents": {
+    "aider": [
+     "CONVENTIONS.md"
+    ],
+    "claude": [
+     ".claude/skills/ai-kit-bootstrap/SKILL.md",
+     ".claude/skills/ai-kit-review/SKILL.md",
+     ".claude/skills/ai-kit-sync-context/SKILL.md",
+     ".claude/skills/dotnet-work/SKILL.md",
+     ".claude/skills/filament-work/SKILL.md",
+     ".claude/skills/frontend-work/SKILL.md",
+     ".claude/skills/go-work/SKILL.md",
+     ".claude/skills/infra-work/SKILL.md",
+     ".claude/skills/java-work/SKILL.md",
+     ".claude/skills/laravel-work/SKILL.md",
+     ".claude/skills/library-work/SKILL.md",
+     ".claude/skills/moodle-work/SKILL.md",
+     ".claude/skills/php-work/SKILL.md",
+     ".claude/skills/project-continuity/SKILL.md",
+     ".claude/skills/python-work/SKILL.md",
+     ".claude/skills/rust-work/SKILL.md",
+     "CLAUDE.md"
+    ],
+    "cline": [
+     ".clinerules/ai-kit.md"
+    ],
+    "codex": [],
+    "copilot": [
+     ".github/copilot-instructions.md"
+    ],
+    "cursor": [
+     ".cursor/rules/ai-kit.mdc"
+    ],
+    "gemini": [
+     "GEMINI.md"
+    ],
+    "kimi": [
+     "KIMI.md"
+    ],
+    "manus": [
+     "MANUS.md"
+    ],
+    "roo": [
+     ".roo/rules/ai-kit.md"
+    ],
+    "windsurf": [
+     ".windsurf/rules/ai-kit.md"
+    ]
+   },
+   "base": [
+    ".agents/skills/ai-kit-bootstrap/SKILL.md",
+    ".agents/skills/ai-kit-review/SKILL.md",
+    ".agents/skills/ai-kit-sync-context/SKILL.md",
+    ".agents/skills/dotnet-work/SKILL.md",
+    ".agents/skills/filament-work/SKILL.md",
+    ".agents/skills/frontend-work/SKILL.md",
+    ".agents/skills/go-work/SKILL.md",
+    ".agents/skills/infra-work/SKILL.md",
+    ".agents/skills/java-work/SKILL.md",
+    ".agents/skills/laravel-work/SKILL.md",
+    ".agents/skills/library-work/SKILL.md",
+    ".agents/skills/moodle-work/SKILL.md",
+    ".agents/skills/php-work/SKILL.md",
+    ".agents/skills/project-continuity/SKILL.md",
+    ".agents/skills/python-work/SKILL.md",
+    ".agents/skills/rust-work/SKILL.md",
+    ".gitignore",
+    "AGENTS.md",
+    "CHANGELOG.md",
+    "PROJECT_CONTEXT.md",
+    "README.md",
+    "WIKI.md",
+    "ai-kit/.install-state.json",
+    "ai-kit/ADAPTERS.md",
+    "ai-kit/BOOTSTRAP.md",
+    "ai-kit/CONTAINERS.md",
+    "ai-kit/CONTEXT7.md",
+    "ai-kit/CORE.md",
+    "ai-kit/ENGINEERING.md",
+    "ai-kit/LICENSE",
+    "ai-kit/MCP.md",
+    "ai-kit/METRICS.md",
+    "ai-kit/SECURITY-AUDIT.md",
+    "ai-kit/SECURITY.md",
+    "ai-kit/SKILLS.md",
+    "ai-kit/STRIX.md",
+    "ai-kit/UPSTREAM.md",
+    "ai-kit/VERSION",
+    "ai-kit/profiles/OWNER.md",
+    "ai-kit/project.json",
+    "ai-kit/router/POLICY.md",
+    "ai-kit/router/providers/anthropic.json",
+    "ai-kit/router/providers/anthropic.md",
+    "ai-kit/router/providers/gemini.json",
+    "ai-kit/router/providers/gemini.md",
+    "ai-kit/router/providers/kimi.json",
+    "ai-kit/router/providers/kimi.md",
+    "ai-kit/router/providers/local.json",
+    "ai-kit/router/providers/local.md",
+    "ai-kit/router/providers/openai.json",
+    "ai-kit/router/providers/openai.md",
+    "ai-kit/router/routing.json",
+    "ai-kit/router/selection.json",
+    "ai-kit/settings.json",
+    "ai-kit/stacks/DOTNET.md",
+    "ai-kit/stacks/FILAMENT.md",
+    "ai-kit/stacks/FRONTEND.md",
+    "ai-kit/stacks/GO.md",
+    "ai-kit/stacks/INFRA.md",
+    "ai-kit/stacks/JAVA.md",
+    "ai-kit/stacks/LARAVEL.md",
+    "ai-kit/stacks/LIBRARY.md",
+    "ai-kit/stacks/MOODLE.md",
+    "ai-kit/stacks/PHP.md",
+    "ai-kit/stacks/PYTHON.md",
+    "ai-kit/stacks/RUST.md",
+    "docs/DECISIONS.md",
+    "docs/adr/0000-template.md"
+   ],
+   "extras": {
+    "ci": {
+     "byAgent": {},
+     "common": [
+      ".github/workflows/ai-kit.yml"
+     ]
+    },
+    "context7": {
+     "byAgent": {
+      "claude": [
+       ".claude/skills/context7-docs/SKILL.md"
+      ]
+     },
+     "common": [
+      ".agents/skills/context7-docs/SKILL.md"
+     ]
+    },
+    "data-guards": {
+     "byAgent": {
+      "claude": [
+       ".claude/settings.local.json"
+      ]
+     },
+     "common": []
+    },
+    "guards": {
+     "byAgent": {
+      "claude": [
+       ".claude/settings.local.json"
+      ]
+     },
+     "common": []
+    },
+    "native-settings": {
+     "byAgent": {
+      "aider": [
+       ".aiderignore"
+      ],
+      "claude": [
+       ".claude/settings.local.json"
+      ],
+      "cursor": [
+       ".cursorignore"
+      ],
+      "gemini": [
+       ".geminiignore"
+      ]
+     },
+     "common": []
+    },
+    "orchestration": {
+     "byAgent": {
+      "codex": [
+       ".codex/agents/aikit_explorer.toml",
+       ".codex/agents/aikit_reviewer.toml",
+       ".codex/agents/aikit_worker.toml"
+      ]
+     },
+     "common": [
+      "ai-kit/ORCHESTRATION.md",
+      "ai-kit/orchestration.json"
+     ]
+    },
+    "scoped-rules": {
+     "byAgent": {},
+     "common": []
+    },
+    "security-audit": {
+     "byAgent": {
+      "claude": [
+       ".claude/skills/security-audit/SKILL.md",
+       ".claude/skills/security-audit/agents/openai.yaml"
+      ]
+     },
+     "common": [
+      ".agents/skills/security-audit/SKILL.md",
+      ".agents/skills/security-audit/agents/openai.yaml",
+      "ai-kit/vendor/security-audit/AI-AND-LLM.md",
+      "ai-kit/vendor/security-audit/ATTACK-CLASSES.md",
+      "ai-kit/vendor/security-audit/CLIENT-SIDE.md",
+      "ai-kit/vendor/security-audit/CLOUD-AND-DEPLOYMENT.md",
+      "ai-kit/vendor/security-audit/DATA-ISOLATION-AND-LIFECYCLE.md",
+      "ai-kit/vendor/security-audit/DESKTOP-MOBILE-AND-LOCAL-IPC.md",
+      "ai-kit/vendor/security-audit/HUNTING.md",
+      "ai-kit/vendor/security-audit/LICENSE",
+      "ai-kit/vendor/security-audit/MEMORY-SAFETY-AND-BINARY.md",
+      "ai-kit/vendor/security-audit/PROTOCOLS-RPC-AND-MESSAGING.md",
+      "ai-kit/vendor/security-audit/RECONNAISSANCE.md",
+      "ai-kit/vendor/security-audit/RESOURCE-EXHAUSTION-AND-AVAILABILITY.md",
+      "ai-kit/vendor/security-audit/SKILL.md",
+      "ai-kit/vendor/security-audit/SUPPLY-CHAIN-AND-RELEASE.md",
+      "ai-kit/vendor/security-audit/UPSTREAM.json",
+      "ai-kit/vendor/security-audit/VALIDATION-AND-REPORTING.md",
+      "ai-kit/vendor/security-audit/WEB-PROTOCOL-AND-AUTH.md",
+      "ai-kit/vendor/security-audit/report-schema.json",
+      "ai-kit/vendor/security-audit/validate-coverage-ledger.cjs",
+      "ai-kit/vendor/security-audit/validate-coverage-ledger.test.cjs",
+      "ai-kit/vendor/security-audit/validate-findings.cjs",
+      "ai-kit/vendor/security-audit/validate-findings.test.cjs"
+     ]
+    },
+    "session-start": {
+     "byAgent": {
+      "claude": [
+       ".claude/settings.local.json"
+      ]
+     },
+     "common": [
+      ".agents/hooks/session-start.md",
+      ".agents/hooks/session-start.sh"
+     ]
+    },
+    "strix": {
+     "byAgent": {
+      "claude": [
+       ".claude/skills/strix/SKILL.md",
+       ".claude/skills/strix/agents/openai.yaml"
+      ]
+     },
+     "common": [
+      ".agents/skills/strix/SKILL.md",
+      ".agents/skills/strix/agents/openai.yaml",
+      "ai-kit/vendor/strix/LICENSE",
+      "ai-kit/vendor/strix/UPSTREAM.json",
+      "ai-kit/vendor/strix/api-security-testing/SKILL.md",
+      "ai-kit/vendor/strix/application-security-testing/SKILL.md",
+      "ai-kit/vendor/strix/ci-security-scanning-with-strix/SKILL.md",
+      "ai-kit/vendor/strix/find-security-vulnerabilities-in-code/SKILL.md",
+      "ai-kit/vendor/strix/fix-security-vulnerabilities-with-strix/SKILL.md",
+      "ai-kit/vendor/strix/managed-pentesting-with-strix/SKILL.md",
+      "ai-kit/vendor/strix/owasp-top-10-testing/SKILL.md",
+      "ai-kit/vendor/strix/penetration-testing-with-strix/SKILL.md",
+      "ai-kit/vendor/strix/web-app-penetration-testing/SKILL.md"
+     ]
+    },
+    "web-design": {
+     "byAgent": {
+      "claude": [
+       ".claude/skills/design-extract/SKILL.md",
+       ".claude/skills/laravel-blade-ui/SKILL.md",
+       ".claude/skills/ui-review/SKILL.md",
+       ".claude/skills/web-design/SKILL.md"
+      ]
+     },
+     "common": [
+      ".agents/skills/design-extract/SKILL.md",
+      ".agents/skills/laravel-blade-ui/SKILL.md",
+      ".agents/skills/ui-review/SKILL.md",
+      ".agents/skills/web-design/SKILL.md",
+      "ai-kit/WEB-DESIGN.md",
+      "ai-kit/web-design/LARAVEL.md",
+      "ai-kit/web-design/LIBRARIES.md",
+      "ai-kit/web-design/REVIEW.md",
+      "ai-kit/web-design/TOOLS.md",
+      "docs/design/ACCEPTANCE.md",
+      "docs/design/BRIEF.md",
+      "docs/design/SYSTEM.md"
+     ]
+    }
+   }
+  },
+  "team": {
+   "agents": {
+    "aider": [
+     "CONVENTIONS.md"
+    ],
+    "claude": [
+     ".claude/skills/ai-kit-bootstrap/SKILL.md",
+     ".claude/skills/ai-kit-review/SKILL.md",
+     ".claude/skills/ai-kit-sync-context/SKILL.md",
+     ".claude/skills/dotnet-work/SKILL.md",
+     ".claude/skills/filament-work/SKILL.md",
+     ".claude/skills/frontend-work/SKILL.md",
+     ".claude/skills/go-work/SKILL.md",
+     ".claude/skills/infra-work/SKILL.md",
+     ".claude/skills/java-work/SKILL.md",
+     ".claude/skills/laravel-work/SKILL.md",
+     ".claude/skills/library-work/SKILL.md",
+     ".claude/skills/moodle-work/SKILL.md",
+     ".claude/skills/php-work/SKILL.md",
+     ".claude/skills/project-continuity/SKILL.md",
+     ".claude/skills/python-work/SKILL.md",
+     ".claude/skills/rust-work/SKILL.md",
+     "CLAUDE.md"
+    ],
+    "cline": [
+     ".clinerules/ai-kit.md"
+    ],
+    "codex": [],
+    "copilot": [
+     ".github/copilot-instructions.md"
+    ],
+    "cursor": [
+     ".cursor/rules/ai-kit.mdc"
+    ],
+    "gemini": [
+     "GEMINI.md"
+    ],
+    "kimi": [
+     "KIMI.md"
+    ],
+    "manus": [
+     "MANUS.md"
+    ],
+    "roo": [
+     ".roo/rules/ai-kit.md"
+    ],
+    "windsurf": [
+     ".windsurf/rules/ai-kit.md"
+    ]
+   },
+   "base": [
+    ".agents/skills/ai-kit-bootstrap/SKILL.md",
+    ".agents/skills/ai-kit-review/SKILL.md",
+    ".agents/skills/ai-kit-sync-context/SKILL.md",
+    ".agents/skills/dotnet-work/SKILL.md",
+    ".agents/skills/filament-work/SKILL.md",
+    ".agents/skills/frontend-work/SKILL.md",
+    ".agents/skills/go-work/SKILL.md",
+    ".agents/skills/infra-work/SKILL.md",
+    ".agents/skills/java-work/SKILL.md",
+    ".agents/skills/laravel-work/SKILL.md",
+    ".agents/skills/library-work/SKILL.md",
+    ".agents/skills/moodle-work/SKILL.md",
+    ".agents/skills/php-work/SKILL.md",
+    ".agents/skills/project-continuity/SKILL.md",
+    ".agents/skills/python-work/SKILL.md",
+    ".agents/skills/rust-work/SKILL.md",
+    ".gitignore",
+    "AGENTS.md",
+    "CHANGELOG.md",
+    "PROJECT_CONTEXT.md",
+    "README.md",
+    "WIKI.md",
+    "ai-kit/.install-state.json",
+    "ai-kit/ADAPTERS.md",
+    "ai-kit/BOOTSTRAP.md",
+    "ai-kit/CONTAINERS.md",
+    "ai-kit/CONTEXT7.md",
+    "ai-kit/CORE.md",
+    "ai-kit/ENGINEERING.md",
+    "ai-kit/LICENSE",
+    "ai-kit/MCP.md",
+    "ai-kit/METRICS.md",
+    "ai-kit/SECURITY-AUDIT.md",
+    "ai-kit/SECURITY.md",
+    "ai-kit/SKILLS.md",
+    "ai-kit/STRIX.md",
+    "ai-kit/UPSTREAM.md",
+    "ai-kit/VERSION",
+    "ai-kit/profiles/OWNER.md",
+    "ai-kit/project.json",
+    "ai-kit/router/POLICY.md",
+    "ai-kit/router/providers/anthropic.json",
+    "ai-kit/router/providers/anthropic.md",
+    "ai-kit/router/providers/gemini.json",
+    "ai-kit/router/providers/gemini.md",
+    "ai-kit/router/providers/kimi.json",
+    "ai-kit/router/providers/kimi.md",
+    "ai-kit/router/providers/local.json",
+    "ai-kit/router/providers/local.md",
+    "ai-kit/router/providers/openai.json",
+    "ai-kit/router/providers/openai.md",
+    "ai-kit/router/routing.json",
+    "ai-kit/router/selection.json",
+    "ai-kit/settings.json",
+    "ai-kit/stacks/DOTNET.md",
+    "ai-kit/stacks/FILAMENT.md",
+    "ai-kit/stacks/FRONTEND.md",
+    "ai-kit/stacks/GO.md",
+    "ai-kit/stacks/INFRA.md",
+    "ai-kit/stacks/JAVA.md",
+    "ai-kit/stacks/LARAVEL.md",
+    "ai-kit/stacks/LIBRARY.md",
+    "ai-kit/stacks/MOODLE.md",
+    "ai-kit/stacks/PHP.md",
+    "ai-kit/stacks/PYTHON.md",
+    "ai-kit/stacks/RUST.md",
+    "docs/DECISIONS.md",
+    "docs/adr/0000-template.md"
+   ],
+   "extras": {
+    "ci": {
+     "byAgent": {},
+     "common": [
+      ".github/workflows/ai-kit.yml"
+     ]
+    },
+    "context7": {
+     "byAgent": {
+      "claude": [
+       ".claude/skills/context7-docs/SKILL.md"
+      ]
+     },
+     "common": [
+      ".agents/skills/context7-docs/SKILL.md"
+     ]
+    },
+    "data-guards": {
+     "byAgent": {
+      "claude": [
+       ".claude/settings.json"
+      ]
+     },
+     "common": []
+    },
+    "guards": {
+     "byAgent": {
+      "claude": [
+       ".claude/settings.json"
+      ]
+     },
+     "common": []
+    },
+    "native-settings": {
+     "byAgent": {
+      "aider": [
+       ".aiderignore"
+      ],
+      "claude": [
+       ".claude/settings.json"
+      ],
+      "cursor": [
+       ".cursorignore"
+      ],
+      "gemini": [
+       ".geminiignore"
+      ]
+     },
+     "common": []
+    },
+    "orchestration": {
+     "byAgent": {
+      "codex": [
+       ".codex/agents/aikit_explorer.toml",
+       ".codex/agents/aikit_reviewer.toml",
+       ".codex/agents/aikit_worker.toml"
+      ]
+     },
+     "common": [
+      "ai-kit/ORCHESTRATION.md",
+      "ai-kit/orchestration.json"
+     ]
+    },
+    "scoped-rules": {
+     "byAgent": {},
+     "common": []
+    },
+    "security-audit": {
+     "byAgent": {
+      "claude": [
+       ".claude/skills/security-audit/SKILL.md",
+       ".claude/skills/security-audit/agents/openai.yaml"
+      ]
+     },
+     "common": [
+      ".agents/skills/security-audit/SKILL.md",
+      ".agents/skills/security-audit/agents/openai.yaml",
+      "ai-kit/vendor/security-audit/AI-AND-LLM.md",
+      "ai-kit/vendor/security-audit/ATTACK-CLASSES.md",
+      "ai-kit/vendor/security-audit/CLIENT-SIDE.md",
+      "ai-kit/vendor/security-audit/CLOUD-AND-DEPLOYMENT.md",
+      "ai-kit/vendor/security-audit/DATA-ISOLATION-AND-LIFECYCLE.md",
+      "ai-kit/vendor/security-audit/DESKTOP-MOBILE-AND-LOCAL-IPC.md",
+      "ai-kit/vendor/security-audit/HUNTING.md",
+      "ai-kit/vendor/security-audit/LICENSE",
+      "ai-kit/vendor/security-audit/MEMORY-SAFETY-AND-BINARY.md",
+      "ai-kit/vendor/security-audit/PROTOCOLS-RPC-AND-MESSAGING.md",
+      "ai-kit/vendor/security-audit/RECONNAISSANCE.md",
+      "ai-kit/vendor/security-audit/RESOURCE-EXHAUSTION-AND-AVAILABILITY.md",
+      "ai-kit/vendor/security-audit/SKILL.md",
+      "ai-kit/vendor/security-audit/SUPPLY-CHAIN-AND-RELEASE.md",
+      "ai-kit/vendor/security-audit/UPSTREAM.json",
+      "ai-kit/vendor/security-audit/VALIDATION-AND-REPORTING.md",
+      "ai-kit/vendor/security-audit/WEB-PROTOCOL-AND-AUTH.md",
+      "ai-kit/vendor/security-audit/report-schema.json",
+      "ai-kit/vendor/security-audit/validate-coverage-ledger.cjs",
+      "ai-kit/vendor/security-audit/validate-coverage-ledger.test.cjs",
+      "ai-kit/vendor/security-audit/validate-findings.cjs",
+      "ai-kit/vendor/security-audit/validate-findings.test.cjs"
+     ]
+    },
+    "session-start": {
+     "byAgent": {
+      "claude": [
+       ".claude/settings.json"
+      ]
+     },
+     "common": [
+      ".agents/hooks/session-start.md",
+      ".agents/hooks/session-start.sh"
+     ]
+    },
+    "strix": {
+     "byAgent": {
+      "claude": [
+       ".claude/skills/strix/SKILL.md",
+       ".claude/skills/strix/agents/openai.yaml"
+      ]
+     },
+     "common": [
+      ".agents/skills/strix/SKILL.md",
+      ".agents/skills/strix/agents/openai.yaml",
+      "ai-kit/vendor/strix/LICENSE",
+      "ai-kit/vendor/strix/UPSTREAM.json",
+      "ai-kit/vendor/strix/api-security-testing/SKILL.md",
+      "ai-kit/vendor/strix/application-security-testing/SKILL.md",
+      "ai-kit/vendor/strix/ci-security-scanning-with-strix/SKILL.md",
+      "ai-kit/vendor/strix/find-security-vulnerabilities-in-code/SKILL.md",
+      "ai-kit/vendor/strix/fix-security-vulnerabilities-with-strix/SKILL.md",
+      "ai-kit/vendor/strix/managed-pentesting-with-strix/SKILL.md",
+      "ai-kit/vendor/strix/owasp-top-10-testing/SKILL.md",
+      "ai-kit/vendor/strix/penetration-testing-with-strix/SKILL.md",
+      "ai-kit/vendor/strix/web-app-penetration-testing/SKILL.md"
+     ]
+    },
+    "web-design": {
+     "byAgent": {
+      "claude": [
+       ".claude/skills/design-extract/SKILL.md",
+       ".claude/skills/laravel-blade-ui/SKILL.md",
+       ".claude/skills/ui-review/SKILL.md",
+       ".claude/skills/web-design/SKILL.md"
+      ]
+     },
+     "common": [
+      ".agents/skills/design-extract/SKILL.md",
+      ".agents/skills/laravel-blade-ui/SKILL.md",
+      ".agents/skills/ui-review/SKILL.md",
+      ".agents/skills/web-design/SKILL.md",
+      "ai-kit/WEB-DESIGN.md",
+      "ai-kit/web-design/LARAVEL.md",
+      "ai-kit/web-design/LIBRARIES.md",
+      "ai-kit/web-design/REVIEW.md",
+      "ai-kit/web-design/TOOLS.md",
+      "docs/design/ACCEPTANCE.md",
+      "docs/design/BRIEF.md",
+      "docs/design/SYSTEM.md"
+     ]
+    }
+   }
+  }
+ },
+ "version": "1.4.5"
+}
