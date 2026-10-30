@@ -21,9 +21,10 @@ Requirements and observed evidence for the scope in [BRIEF](BRIEF.md) and rules 
 | 375×812 phone | No element overflows the viewport; menu button, two-column clients, sticky "See the generated commands" link |
 | Browser console | No errors |
 | Automated: `npm run check` | ESLint clean; 67 Vitest tests (unit, Bash and Windows PowerShell 5.1 quoting, 21 previews and 8 applies through the real AI-KIT 1.4.5 installer); production build succeeds |
+| GitHub Actions run 41102098679 (ubuntu-latest) | Lint, all tests including upstream installer and Bash/pwsh quoting, Pages build and deploy succeeded |
+| Deployed <https://tigusigalpa.github.io/ai-kit-docs/> | HTTP 200; canonical URL and `/ai-kit-docs/` asset paths correct; bundled fonts load; a share link restores the configuration and scrolls to the configurator |
 
 ## Not verified
 
 - Screen-reader walkthrough and a full keyboard-only pass.
-- Safari and Firefox rendering; the dev pane is Chromium-based.
-- The deployed GitHub Pages URL is checked after the first workflow run.
+- Safari and Firefox rendering; checks used a Chromium-based browser.
