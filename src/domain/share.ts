@@ -1,5 +1,5 @@
 import { AGENTS, DOCKER_CLEANUP, EXTRAS, PRESETS, type Agent, type DockerCleanup, type Extra, type Preset } from '../data/catalog';
-import { freshDefaults, RUNNERS, sortAgents, sortExtras, updateDefaults, type Config, type Runner } from './config';
+import { allowsDowngrade, freshDefaults, RUNNERS, sortAgents, sortExtras, updateDefaults, type Config, type Runner } from './config';
 import type { Shell } from './shell';
 
 export interface Shared { config: Config; runner: Runner; shell: Shell }
@@ -22,6 +22,7 @@ export function encode({ config, runner, shell }: Shared): string {
   if (config.interactive) params.set('interactive', '1');
   if (!config.check) params.set('check', '0');
   config.acceptLocal.forEach(path => params.append('accept', path));
+  if (allowsDowngrade(config)) params.set('downgrade', '1');
   return params.toString();
 }
 
@@ -52,5 +53,7 @@ export function decode(query: string): Shared | null {
   config.interactive = params.get('interactive') === '1';
   config.check = params.get('check') !== '0';
   config.acceptLocal = params.getAll('accept').slice(0, 20).map(path => path.slice(0, 300));
+  // A deliberate downgrade only makes sense for an existing installation.
+  config.allowDowngrade = config.scenario === 'update' && params.get('downgrade') === '1';
   return { config, runner, shell };
 }

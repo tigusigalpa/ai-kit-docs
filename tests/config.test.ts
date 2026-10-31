@@ -59,11 +59,27 @@ describe('validation', () => {
     expect(codes(config())).not.toContain('needs-claude');
   });
 
-  it('blocks --docker-cleanup for the older published Docker image', () => {
-    expect(codes(config({ dockerCleanup: 'keep-cache' }), 'docker')).toContain('docker-cleanup-image');
-    expect(codes(config(), 'docker')).toContain('docker-image');
-    expect(codes(config(), 'docker')).not.toContain('docker-cleanup-image');
-    expect(codes(config({ dockerCleanup: 'keep-cache' }), 'aikit')).not.toContain('docker-cleanup-image');
+  it('accepts every option with the published Docker image', () => {
+    const update = { ...updateDefaults(), dockerCleanup: 'keep-cache' as const, allowDowngrade: true };
+    expect(codes(update, 'docker')).not.toContain('docker-option-image');
+    expect(codes(config(), 'docker')).not.toContain('docker-image');
+  });
+
+  it('blocks options a lagging Docker image would reject', () => {
+    const lagging = (value: Config, runner: Parameters<typeof validate>[1] = 'docker') => validate(value, runner, 'posix', '1.4.5');
+    const update = { ...updateDefaults(), dockerCleanup: 'keep-cache' as const, allowDowngrade: true };
+    expect(lagging(update).filter(issue => issue.code === 'docker-option-image').map(issue => [issue.detail, issue.field]))
+      .toEqual([['--docker-cleanup', 'dockerCleanup'], ['--allow-downgrade', 'allowDowngrade']]);
+    expect(lagging(config()).map(issue => issue.code)).toContain('docker-image');
+    expect(lagging(config()).map(issue => issue.code)).not.toContain('docker-option-image');
+    expect(validate(update, 'docker', 'posix', '1.4.6').filter(issue => issue.code === 'docker-option-image').map(issue => issue.detail)).toEqual(['--allow-downgrade']);
+    expect(lagging(update, 'aikit').map(issue => issue.code)).not.toContain('docker-option-image');
+  });
+
+  it('warns about a deliberate downgrade only when updating', () => {
+    expect(codes({ ...updateDefaults(), allowDowngrade: true })).toContain('allow-downgrade');
+    expect(codes(config({ allowDowngrade: true }))).not.toContain('allow-downgrade');
+    expect(codes(updateDefaults())).not.toContain('allow-downgrade');
   });
 
   it('explains that the CI check needs team mode', () => {
@@ -83,6 +99,15 @@ describe('share links', () => {
     expect(decode(encode({ config: value, runner: 'docker', shell: 'powershell' }))).toEqual({ config: value, runner: 'docker', shell: 'powershell' });
     const update = { ...updateDefaults(), extras: ['context7' as const] };
     expect(decode(encode({ config: update, runner: 'aikit', shell: 'posix' }))?.config).toEqual(update);
+    const downgrade = { ...updateDefaults(), allowDowngrade: true };
+    expect(encode({ config: downgrade, runner: 'aikit', shell: 'posix' })).toContain('downgrade=1');
+    expect(decode(encode({ config: downgrade, runner: 'aikit', shell: 'posix' }))?.config).toEqual(downgrade);
+  });
+
+  it('keeps --allow-downgrade out of new-installation links', () => {
+    expect(encode({ config: config({ allowDowngrade: true }), runner: 'aikit', shell: 'posix' })).not.toContain('downgrade');
+    expect(decode('run=aikit&downgrade=1')?.config.allowDowngrade).toBe(false);
+    expect(decode('scenario=update&downgrade=yes')?.config.allowDowngrade).toBe(false);
   });
 
   it('ignores unknown values', () => {

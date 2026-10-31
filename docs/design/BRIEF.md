@@ -10,7 +10,7 @@ This is project-owned design memory. Current project facts remain in [PROJECT_CO
 - Required behavior: client-side generation only; no backend, accounts, analytics, remote fonts or network calls; share links keep choices in the URL query.
 - Confirmed stack: React 19.3.1, Vite 8.3.5, TypeScript 5.9, Vitest 5; deployed to GitHub Pages from `.github/workflows/pages.yml`.
 - Languages, devices and accessibility: English default with Russian toggle (browser language or saved choice); light and dark themes; phone to wide desktop; keyboard-operable controls, visible focus, reduced motion respected.
-- Content and assets: text derived from the AI-KIT 1.4.5 README and the 1.4.6 changelog, user guides (`docs/guide/`), installer, doctor and agent registry; original SVG logo and icons; fonts Onest and JetBrains Mono from `@fontsource-variable` (OFL), bundled.
+- Content and assets: text derived from the AI-KIT 1.4.5 README, the 1.4.6–1.5.0 changelog, user guides (`docs/guide/`), installer, doctor, MCP report, flag schema and agent registry; original SVG logo and icons; fonts Onest and JetBrains Mono from `@fontsource-variable` (OFL), bundled.
 - Open choices: a custom domain is not configured; TypeUI was not connected for this version.
 
 ## Annotated references
@@ -20,6 +20,7 @@ This is project-owned design memory. Current project facts remain in [PROJECT_CO
 | [LaraShip configurator](https://github.com/shellharbor/laraship-docs) (sibling project) | Section order (hero with terminal, steps, install guide before the wizard, reference, FAQ), shared runner choice across guide and builder, EN/RU toggle, pinned upstream contract with tests | Source code at its default branch, read 2026-10-30 | Source reviewed; live page not inspected |
 | AI-KIT README v1.4.5 | Content, flag semantics, presets, Docker and Windows procedures | Tag `v1.4.5` | Read in full for installer and Docker sections |
 | AI-KIT v1.4.6 changelog, `docs/guide/INSTALLER_FLAGS.md`, `scripts/install.py`, `scripts/doctor.py` | `--docker-cleanup`, `doctor --fix` preview/apply, `--with-ci` contract, release summary | Tag `v1.4.6`, read 2026-10-30 | Flags and choices also compared with the installer `--help` in tests |
+| AI-KIT v1.4.7 and v1.5.0 changelog, `integrations/installer-flags.json`, `docs/guide/INSTALL.md#review-mcp-servers`, `scripts/flags.py`, `scripts/mcp_report.py`, `scripts/install.py`, `scripts/doctor.py` | `aikit flags`, `aikit mcp report`, `--allow-downgrade` and the doctor upgrade hints | Release commit of 1.5.0, read 2026-10-31 | Flag reference also compared with the schema; new commands and the downgrade guard run in tests |
 
 ## Decisions
 

@@ -1,7 +1,7 @@
 import { CLEANUP_AND_FIX_PREVIEW, imageAtLeast, UPSTREAM } from '../data/upstream';
 import { PRESET_INFO } from '../data/catalog';
-import { resolve, sortAgents, type Config, type Runner } from './config';
-import { literal, quote, type Shell } from './shell';
+import { allowsDowngrade, isAbsolutePath, resolve, sortAgents, type Config, type Runner } from './config';
+import { hasControlCharacters, literal, quote, type Shell } from './shell';
 
 export type Mount = 'none' | 'readonly' | 'writable';
 
@@ -43,6 +43,7 @@ export function installOptions(config: Config): string[] {
   if (config.dockerCleanup) args.push('--docker-cleanup', config.dockerCleanup);
   for (const extra of resolved.extraFlags) args.push(`--with-${extra}`);
   for (const path of config.acceptLocal.map(value => value.trim()).filter(Boolean)) args.push('--accept-local', path);
+  if (allowsDowngrade(config)) args.push('--allow-downgrade');
   if (config.interactive) args.push('--interactive');
   return args;
 }
@@ -97,13 +98,40 @@ export const versionCommand = (runner: Runner, shell: Shell) => runner === 'sour
 
 /**
  * doctor --fix as two steps: preview the repair plan (writes nothing), then write it with --fix --apply.
- * A published image older than that preview applies --fix directly and rejects --apply; for it the preview is
+ * An image older than that preview applies --fix directly and rejects --apply; for it the preview is
  * the installer preview without options, which builds the same repair plan from the saved choices.
  */
-export function doctorFix(runner: Runner, shell: Shell, target: string) {
+export function doctorFix(runner: Runner, shell: Shell, target: string, image: string = UPSTREAM.imageVersion) {
   const project = targetToken(runner, target, shell);
-  const legacyImage = runner === 'docker' && !imageAtLeast(CLEANUP_AND_FIX_PREVIEW);
+  const legacyImage = runner === 'docker' && !imageAtLeast(CLEANUP_AND_FIX_PREVIEW, image);
   return legacyImage
     ? { legacyImage, preview: invocation(runner, shell, 'install', [project], 'readonly'), apply: invocation(runner, shell, 'doctor', [project, '--fix'], 'writable') }
     : { legacyImage, preview: invocation(runner, shell, 'doctor', [project, '--fix'], 'readonly'), apply: invocation(runner, shell, 'doctor', [project, '--fix', '--apply'], 'writable') };
+}
+
+/** Read-only MCP server inventory of the project; Docker mounts it read-only. */
+export const mcpReport = (runner: Runner, shell: Shell, target: string) =>
+  invocation(runner, shell, 'mcp report', [targetToken(runner, target, shell)], 'readonly');
+
+/**
+ * Installer option schema. Without `output` it prints JSON; with it, --output writes the file with LF line endings.
+ * Docker writes into the writable /workspace mount, so its output path must stay inside the mounted folder.
+ */
+export function flagsCommand(runner: Runner, shell: Shell, output?: string) {
+  const path = output?.trim();
+  if (!path) return invocation(runner, shell, 'flags', []);
+  if (runner !== 'docker') return invocation(runner, shell, 'flags', ['--output', quote(path, shell)]);
+  const inside = path.replaceAll('\\', '/').replace(/^(\.\/)+/, '');
+  return invocation(runner, shell, 'flags', ['--output', quote(`/workspace/${inside}`, shell)], 'writable');
+}
+
+/** Why an `aikit flags --output` path cannot be used, or null when it can. */
+export function flagsOutputProblem(runner: Runner, shell: Shell, output: string): 'empty' | 'invalid' | 'docker-path' | 'powershell-quote' | null {
+  const path = output.trim();
+  if (!path) return 'empty';
+  // A file name is required: not an option-like word, a bare folder or a path ending in a separator.
+  if (hasControlCharacters(path) || path.startsWith('-') || /(^|[\\/])\.{0,2}$/.test(path)) return 'invalid';
+  if (runner === 'docker' && (isAbsolutePath(path) || path.split(/[\\/]/).includes('..'))) return 'docker-path';
+  if (shell === 'powershell' && path.includes('"')) return 'powershell-quote';
+  return null;
 }

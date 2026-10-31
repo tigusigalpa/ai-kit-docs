@@ -40,6 +40,21 @@ The Vite dev server could not re-optimize dependencies inside the Dropbox folder
 
 Not re-checked in this update: dark theme, screenshots of every state (the pane was hidden, so most checks read the DOM), GitHub Actions and the deployed site.
 
+## Evidence — 2026-10-31, AI-KIT 1.5.0 update
+
+Required states added by this update:
+
+- Update scenario, Advanced group: `--allow-downgrade` is offered only there, off by default, with a warning issue when on; it reaches preview and apply and appears in a share link only when set.
+- More commands: `mcp report` (Docker: read-only mount) and `flags` with and without `--output` (Docker: writable mount, path under `/workspace`), notes in English and Russian; doctor notes mention the upgrade hints and the downgrade refusal.
+- Docker runner with image 1.5.0: `--docker-cleanup` is accepted and `doctor --fix` uses the preview plus `--fix --apply`; no image-version notes appear.
+- Reference: 25 / 25 flags including `--allow-downgrade`, and the `installer-flags.json` note and link.
+
+| Check | Result |
+| --- | --- |
+| Automated: `npm run check` | ESLint clean; 86 Vitest tests (21 previews, 8 applies, flag comparison with `--help` and `installer-flags.json`, `aikit flags`, `aikit mcp report`, `doctor --fix` and the downgrade guard through the real AI-KIT 1.5.0 release commit); production build succeeds |
+
+Not checked in this update: rendering of the states above in a browser (light/dark, English/Russian, 375px phone), GitHub Actions and the deployed site.
+
 ## Not verified
 
 - Screen-reader walkthrough and a full keyboard-only pass.

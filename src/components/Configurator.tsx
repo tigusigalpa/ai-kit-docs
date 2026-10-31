@@ -203,6 +203,12 @@ export function Configurator({ config, onChange, runner, shell, onRunner, onShel
               value={config.acceptLocal.join('\n')} onChange={event => set({ acceptLocal: event.target.value.split('\n').slice(0, 20) })}/>
             <p className="field-hint">{t('One managed path per line, relative to the project. Use only after you merged the candidate from ai-kit/.upstream-cache/candidates/. Not a force-overwrite.', 'Один управляемый путь на строку, относительно проекта. Только после ручного слияния кандидата из ai-kit/.upstream-cache/candidates/. Это не принудительная перезапись.')}</p>
           </div>
+          {!fresh && <label className="toggle-row">
+            <input type="checkbox" checked={config.allowDowngrade} aria-invalid={Boolean(fieldError('allowDowngrade'))} onChange={event => set({ allowDowngrade: event.target.checked })}/>
+            <span><strong>{t('Allow a deliberate downgrade', 'Разрешить осознанный откат')} <code>--allow-downgrade</code></strong>
+              <small>{t('Safety override. When the project records a newer AI-KIT than this CLI, preview warns and apply refuses so older files cannot silently replace newer ones. Upgrade the CLI instead; tick this only to go back on purpose. Not saved.',
+                'Отключение защиты. Если в проекте записана более новая версия AI-KIT, чем у этого CLI, preview предупреждает, а apply отказывается, чтобы старые файлы не заменили новые незаметно. Лучше обновите CLI; отмечайте это только для намеренного отката. Не сохраняется.')}</small></span>
+          </label>}
         </details>
         <a className="jump-result" href="#result">{t('See the generated commands', 'К готовым командам')}<Icon name="arrow" size={16}/></a>
       </form>

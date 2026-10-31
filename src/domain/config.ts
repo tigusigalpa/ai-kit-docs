@@ -1,5 +1,5 @@
 import { AGENTS, EXTRAS, PRESET_EXTRAS, PRESET_INFO, settingsKey, type Agent, type DockerCleanup, type Extra, type Mode, type Preset } from '../data/catalog';
-import { CLEANUP_AND_FIX_PREVIEW, imageAtLeast } from '../data/upstream';
+import { imageAtLeast, OPTION_SINCE, UPSTREAM } from '../data/upstream';
 import { hasControlCharacters, type Shell } from './shell';
 
 export const RUNNERS = ['aikit', 'module', 'venv', 'docker', 'source'] as const;
@@ -20,14 +20,19 @@ export interface Config {
   interactive: boolean;
   check: boolean;
   acceptLocal: string[];
+  /** --allow-downgrade: offered only when updating a project. */
+  allowDowngrade: boolean;
 }
 
 export const freshDefaults = (): Config => ({
   scenario: 'fresh', target: '.', preset: 'solo', mode: '', agents: ['codex', 'claude'], chatLanguage: '',
-  conventions: '', dockerCleanup: '', extras: [], interactive: false, check: true, acceptLocal: [],
+  conventions: '', dockerCleanup: '', extras: [], interactive: false, check: true, acceptLocal: [], allowDowngrade: false,
 });
 
 export const updateDefaults = (): Config => ({ ...freshDefaults(), scenario: 'update', preset: '', agents: [] });
+
+/** Whether this run passes --allow-downgrade; a new installation has no newer version to protect. */
+export const allowsDowngrade = (config: Config) => config.allowDowngrade && config.scenario === 'update';
 
 export const sortAgents = (agents: Iterable<Agent>) => AGENTS.filter(agent => new Set(agents).has(agent));
 export const sortExtras = (extras: Iterable<Extra>) => EXTRAS.filter(extra => new Set(extras).has(extra));
@@ -94,9 +99,10 @@ export function settingsPreview(config: Config): Record<string, unknown> {
 export type Severity = 'error' | 'warning' | 'info';
 export interface Issue { severity: Severity; code: string; field?: string; detail?: string }
 
-const isAbsolutePath = (path: string) => /^(?:[A-Za-z]:[\\/]|\\\\|\/|~\/)/.test(path) || path === '~';
+export const isAbsolutePath = (path: string) => /^(?:[A-Za-z]:[\\/]|\\\\|\/|~\/)/.test(path) || path === '~';
 
-export function validate(config: Config, runner: Runner, shell: Shell): Issue[] {
+/** `image` is the Docker image the commands use; tests pass an older tag to check a lagging image. */
+export function validate(config: Config, runner: Runner, shell: Shell, image: string = UPSTREAM.imageVersion): Issue[] {
   const issues: Issue[] = [];
   const resolved = resolve(config);
   const target = config.target.trim();
@@ -144,12 +150,18 @@ export function validate(config: Config, runner: Runner, shell: Shell): Issue[] 
     issues.push({ severity: 'info', code: 'mode-overrides-preset' });
   }
   if (resolved.extras.includes('ci') && resolved.mode === 'private') issues.push({ severity: 'info', code: 'ci-private' });
+  if (allowsDowngrade(config)) issues.push({ severity: 'warning', code: 'allow-downgrade' });
   if (config.interactive && runner === 'docker') issues.push({ severity: 'info', code: 'docker-interactive' });
   // The published image can be older than the pinned release; argparse rejects options it does not know.
-  if (runner === 'docker' && !imageAtLeast(CLEANUP_AND_FIX_PREVIEW)) {
-    issues.push(config.dockerCleanup
-      ? { severity: 'error', code: 'docker-cleanup-image', field: 'dockerCleanup' }
-      : { severity: 'info', code: 'docker-image' });
+  if (runner === 'docker') {
+    if (!imageAtLeast(UPSTREAM.version, image)) issues.push({ severity: 'info', code: 'docker-image' });
+    const gated: [option: string, used: boolean, field: keyof Config][] = [
+      ['--docker-cleanup', Boolean(config.dockerCleanup), 'dockerCleanup'],
+      ['--allow-downgrade', allowsDowngrade(config), 'allowDowngrade'],
+    ];
+    for (const [option, used, field] of gated) {
+      if (used && !imageAtLeast(OPTION_SINCE[option], image)) issues.push({ severity: 'error', code: 'docker-option-image', field, detail: option });
+    }
   }
   return issues;
 }

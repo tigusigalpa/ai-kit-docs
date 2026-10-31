@@ -1,5 +1,5 @@
 import type { Text } from './data/catalog';
-import { CLEANUP_AND_FIX_PREVIEW, UPSTREAM } from './data/upstream';
+import { UPSTREAM } from './data/upstream';
 import type { Issue } from './domain/config';
 
 export type Language = 'en' | 'ru';
@@ -30,12 +30,13 @@ const ISSUES: Record<string, Text> = {
   'mode-overrides-preset': ['Your explicit sharing mode takes precedence over the preset mode.', 'Явно выбранный режим доступа важнее режима пресета.'],
   'ci-private': ['The CI workflow validates committed AI-KIT files, but private mode keeps them out of Git, so there is nothing to check. Use team mode for a meaningful check.', 'CI workflow проверяет закоммиченные файлы AI-KIT, но в режиме private они не попадают в Git, и проверять нечего. Для осмысленной проверки нужен режим team.'],
   'docker-interactive': ['The interactive wizard needs a terminal, so the Docker command includes -it.', 'Интерактивному мастеру нужен терминал, поэтому в Docker-команду добавлен -it.'],
-  'docker-cleanup-image': [`The published Docker image is AI-KIT ${UPSTREAM.imageVersion} and rejects --docker-cleanup. Keep the default cleanup here, or use another runner with AI-KIT ${CLEANUP_AND_FIX_PREVIEW} or later.`, `Опубликованный Docker-образ — AI-KIT ${UPSTREAM.imageVersion}, он не принимает --docker-cleanup. Оставьте очистку по умолчанию или выберите другой способ запуска с AI-KIT ${CLEANUP_AND_FIX_PREVIEW} или новее.`],
-  'docker-image': [`The published Docker image is AI-KIT ${UPSTREAM.imageVersion}, while this page follows ${UPSTREAM.version}: that image writes no docker_cleanup setting (absent means maximum), and its file list can differ.`, `Опубликованный Docker-образ — AI-KIT ${UPSTREAM.imageVersion}, а страница описывает ${UPSTREAM.version}: этот образ не записывает настройку docker_cleanup (без неё действует maximum), и список файлов может отличаться.`],
+  'allow-downgrade': ['--allow-downgrade lets apply replace managed files with the older versions this CLI carries when the project records a newer AI-KIT. Use it only for a deliberate downgrade; normally upgrade the CLI instead (step 00).', '--allow-downgrade позволяет apply заменить управляемые файлы более старыми версиями из этого CLI, если в проекте записана более новая версия AI-KIT. Используйте его только для осознанного отката; обычно нужно обновить CLI (шаг 00).'],
+  'docker-option-image': [`The published Docker image is AI-KIT ${UPSTREAM.imageVersion} and rejects an option added later. Remove it or use another runner:`, `Опубликованный Docker-образ — AI-KIT ${UPSTREAM.imageVersion}, он не принимает опцию, добавленную позже. Уберите её или выберите другой способ запуска:`],
+  'docker-image': [`The published Docker image is AI-KIT ${UPSTREAM.imageVersion}, while this page follows ${UPSTREAM.version}: options added since then are rejected, and its file list can differ.`, `Опубликованный Docker-образ — AI-KIT ${UPSTREAM.imageVersion}, а страница описывает ${UPSTREAM.version}: опции, добавленные позже, он не примет, и список файлов может отличаться.`],
 };
 
 export const issueText = (issue: Issue, language: Language) => {
   const text = ISSUES[issue.code];
   const message = text ? pick(language, text) : issue.code;
-  return issue.detail && (issue.code === 'needs-claude' || issue.code === 'preset-disables') ? `${message} ${issue.detail}` : message;
+  return issue.detail && ['needs-claude', 'preset-disables', 'docker-option-image'].includes(issue.code) ? `${message} ${issue.detail}` : message;
 };
