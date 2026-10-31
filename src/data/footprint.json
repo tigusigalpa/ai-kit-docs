@@ -216,9 +216,7 @@
       "ai-kit/vendor/security-audit/WEB-PROTOCOL-AND-AUTH.md",
       "ai-kit/vendor/security-audit/report-schema.json",
       "ai-kit/vendor/security-audit/validate-coverage-ledger.cjs",
-      "ai-kit/vendor/security-audit/validate-coverage-ledger.test.cjs",
-      "ai-kit/vendor/security-audit/validate-findings.cjs",
-      "ai-kit/vendor/security-audit/validate-findings.test.cjs"
+      "ai-kit/vendor/security-audit/validate-findings.cjs"
      ]
     },
     "session-start": {
@@ -497,9 +495,7 @@
       "ai-kit/vendor/security-audit/WEB-PROTOCOL-AND-AUTH.md",
       "ai-kit/vendor/security-audit/report-schema.json",
       "ai-kit/vendor/security-audit/validate-coverage-ledger.cjs",
-      "ai-kit/vendor/security-audit/validate-coverage-ledger.test.cjs",
-      "ai-kit/vendor/security-audit/validate-findings.cjs",
-      "ai-kit/vendor/security-audit/validate-findings.test.cjs"
+      "ai-kit/vendor/security-audit/validate-findings.cjs"
      ]
     },
     "session-start": {
@@ -563,5 +559,5 @@
    }
   }
  },
- "version": "1.4.5"
+ "version": "1.4.6"
 }

@@ -1,5 +1,6 @@
 import { useId, useState } from 'react';
-import { invocation, sessionSetup, targetToken, versionCommand, type Mount } from '../domain/command';
+import { UPSTREAM } from '../data/upstream';
+import { doctorFix, invocation, sessionSetup, targetToken, versionCommand, type Mount } from '../domain/command';
 import type { Runner } from '../domain/config';
 import { hasControlCharacters, quote, type Shell } from '../domain/shell';
 import type { T } from '../i18n';
@@ -28,13 +29,33 @@ export function MoreCommands({ runner, shell, target, t }: { runner: Runner; she
   let error = '';
   let mount: Mount = 'none';
   let note = '';
+  // doctor --fix runs as two steps: a preview of the repair plan, then the write.
+  let repair: { preview: string; previewNote: string; apply: string; applyNote: string } | null = null;
   switch (tool) {
     case 'doctor':
-      mount = fix ? 'writable' : 'readonly';
-      code = invocation(runner, shell, 'doctor', [project, ...(fix ? ['--fix'] : [])], mount);
-      note = fix
-        ? t('--fix re-runs the installer to restore missing or baseline files; local edits and conflicts still need review.', '--fix перезапускает установщик и восстанавливает отсутствующие или базовые файлы; локальные правки и конфликты всё равно требуют проверки.')
-        : t('Reports managed-file, link, provider and context drift for an installed project. Writes nothing.', 'Показывает расхождения управляемых файлов, ссылок, провайдеров и контекста. Ничего не пишет.');
+      mount = 'readonly';
+      if (fix) {
+        const plan = doctorFix(runner, shell, target);
+        mount = 'writable';
+        repair = plan.legacyImage ? {
+          preview: plan.preview,
+          previewNote: t(`The published image is AI-KIT ${UPSTREAM.imageVersion}: its doctor has no preview. The installer preview without options builds the same repair plan from the saved choices and writes nothing.`,
+            `Опубликованный образ — AI-KIT ${UPSTREAM.imageVersion}: в его doctor нет preview. Preview установщика без опций строит тот же план восстановления по сохранённым настройкам и ничего не пишет.`),
+          apply: plan.apply,
+          applyNote: t(`In image ${UPSTREAM.imageVersion}, --fix writes immediately and --apply is not accepted. Local edits are preserved; conflicts still need review. Exit code 2: conflicts or doctor errors remain.`,
+            `В образе ${UPSTREAM.imageVersion} --fix записывает сразу, а --apply не принимается. Локальные правки сохраняются, конфликты всё равно требуют проверки. Код выхода 2 — остались конфликты или ошибки doctor.`),
+        } : {
+          preview: plan.preview,
+          previewNote: t('--fix builds the installer repair plan from the saved choices to restore missing or baseline files and prints it with the health report. Nothing is written. AI-KIT 1.4.5 and earlier write with --fix alone, so check the CLI version first.',
+            '--fix строит план установщика по сохранённым настройкам, чтобы восстановить отсутствующие или базовые файлы, и печатает его вместе с отчётом. Ничего не записывается. AI-KIT 1.4.5 и более ранние версии записывают уже с одним --fix, поэтому сначала проверьте версию CLI.'),
+          apply: plan.apply,
+          applyNote: t('--apply writes the reviewed plan and is refused without --fix. Local edits are preserved; conflicts still need review. Exit code 2: conflicts or doctor errors remain.',
+            '--apply записывает проверенный план; без --fix он отклоняется. Локальные правки сохраняются, конфликты всё равно требуют проверки. Код выхода 2 — остались конфликты или ошибки doctor.'),
+        };
+        break;
+      }
+      code = invocation(runner, shell, 'doctor', [project], mount);
+      note = t('Reports managed-file, link, provider and context drift for an installed project. Writes nothing.', 'Показывает расхождения управляемых файлов, ссылок, провайдеров и контекста. Ничего не пишет.');
       break;
     case 'route': {
       if (!task.trim() || hasControlCharacters(task)) error = t('Describe the task in one line.', 'Опишите задачу одной строкой.');
@@ -82,7 +103,8 @@ export function MoreCommands({ runner, shell, target, t }: { runner: Runner; she
       <Segmented name="tool" label={t('Command', 'Команда')} value={tool} onChange={setTool} options={tools}/>
       <div className="tool-fields">
         {tool === 'doctor' && <label className="toggle-row inline"><input type="checkbox" checked={fix} onChange={event => setFix(event.target.checked)}/>
-          <span><strong>{t('Restore missing files', 'Восстановить отсутствующие файлы')} <code>--fix</code></strong></span></label>}
+          <span><strong>{t('Restore missing files', 'Восстановить отсутствующие файлы')} <code>--fix</code></strong>
+            <small>{t('Preview the repair plan first, then write the reviewed plan.', 'Сначала preview плана восстановления, затем запись проверенного плана.')}</small></span></label>}
         {tool === 'route' && <>
           <div className="field wide"><label htmlFor={`${ids}-task`}>{t('Task description', 'Описание задачи')}</label>
             <input id={`${ids}-task`} className="text-input" value={task} maxLength={300} onChange={event => setTask(event.target.value)}/></div>
@@ -109,7 +131,10 @@ export function MoreCommands({ runner, shell, target, t }: { runner: Runner; she
         {setup && runner === 'docker' && mount === 'none'
           ? <CodeBlock t={t} code={setup.split('\n').filter(line => !line.startsWith('app_path') && !line.startsWith('$appPath')).join('\n')} lang={lang} step="··" tone="muted" title={t('Session setup', 'Настройка сессии')}/>
           : setup && <CodeBlock t={t} code={setup} lang={lang} step="··" tone="muted" title={t('Session setup', 'Настройка сессии')}/>}
-        {error ? <p className="blocked">{error}</p> : <CodeBlock t={t} code={code} lang={lang} title={tools.find(item => item.value === tool)?.label}>{note}</CodeBlock>}
+        {error ? <p className="blocked">{error}</p> : repair ? <>
+          <CodeBlock t={t} code={repair.preview} lang={lang} step="01" title={t('Preview the repair plan — writes nothing', 'Preview плана восстановления — ничего не пишет')}>{repair.previewNote}</CodeBlock>
+          <CodeBlock t={t} code={repair.apply} lang={lang} step="02" tone="apply" title={t('Write the reviewed repair plan', 'Записать проверенный план восстановления')}>{repair.applyNote}</CodeBlock>
+        </> : <CodeBlock t={t} code={code} lang={lang} title={tools.find(item => item.value === tool)?.label}>{note}</CodeBlock>}
       </div>
     </div>
   </section>;

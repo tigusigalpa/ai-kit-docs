@@ -24,6 +24,22 @@ Requirements and observed evidence for the scope in [BRIEF](BRIEF.md) and rules 
 | GitHub Actions run 41102098679 (ubuntu-latest) | Lint, all tests including upstream installer and Bash/pwsh quoting, Pages build and deploy succeeded |
 | Deployed <https://tigusigalpa.github.io/ai-kit-docs/> | HTTP 200; canonical URL and `/ai-kit-docs/` asset paths correct; bundled fonts load; a share link restores the configuration and scrolls to the configurator |
 
+## Evidence — 2026-10-30, AI-KIT 1.4.6 update, local `vite preview` of the production build in the Claude desktop browser pane
+
+The Vite dev server could not re-optimize dependencies inside the Dropbox folder (`EBUSY` on `node_modules/.vite`), so the built `dist/` was checked instead.
+
+| Check | Result |
+| --- | --- |
+| Configurator group 04, Docker cleanup control (English, 800px pane) | Default (maximum) / maximum / keep-cache; hint follows the choice; keep-cache adds `--docker-cleanup keep-cache` to preview and apply; `settings.json` shows `docker_cleanup` after `conventions` |
+| Docker runner with keep-cache, then default | Error blocks commands and the control gets the error border; with the default an info note explains image 1.4.5; commands keep `tigusigalpa/ai-kit:1.4.5` |
+| More commands, doctor with `--fix` (Russian; `aikit` and Docker runners) | Two steps: `doctor . --fix` preview and `--fix --apply`; Docker uses `install /workspace` read-only preview and `doctor /workspace --fix` writable, with notes |
+| Reference, release chip and note, guide links (Russian) | 24 / 24 flags including `--docker-cleanup`; chip "v1.4.6 релиз на GitHub 2026-10-30 · Docker-образ 1.4.5"; links open `docs/guide/` at `v1.4.6` |
+| 375×812 phone, update scenario via share link with `cleanup=keep-cache` | Control wraps to two rows inside the card; page scroll width equals the viewport; commands `aikit install . --docker-cleanup keep-cache` |
+| Browser console | No errors on the production build |
+| Automated: `npm run check` | ESLint clean; 75 Vitest tests (21 previews, 8 applies, flag/`--help` comparison and `doctor --fix` behavior through the real AI-KIT 1.4.6 checkout); production build succeeds |
+
+Not re-checked in this update: dark theme, screenshots of every state (the pane was hidden, so most checks read the DOM), GitHub Actions and the deployed site.
+
 ## Not verified
 
 - Screen-reader walkthrough and a full keyboard-only pass.

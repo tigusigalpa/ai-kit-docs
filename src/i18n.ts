@@ -1,4 +1,5 @@
 import type { Text } from './data/catalog';
+import { CLEANUP_AND_FIX_PREVIEW, UPSTREAM } from './data/upstream';
 import type { Issue } from './domain/config';
 
 export type Language = 'en' | 'ru';
@@ -27,8 +28,10 @@ const ISSUES: Record<string, Text> = {
   'agents-replace': ['An explicit --agent list replaces the saved selection; it is not added to it. Leave clients empty to keep the saved ones.', 'Явный список --agent заменяет сохранённый выбор, а не дополняет его. Оставьте клиентов пустыми, чтобы сохранить текущих.'],
   'preset-disables': ['This preset turns these previously enabled extras off unless you select them explicitly:', 'Пресет выключит эти ранее включённые extras, если не выбрать их явно:'],
   'mode-overrides-preset': ['Your explicit sharing mode takes precedence over the preset mode.', 'Явно выбранный режим доступа важнее режима пресета.'],
-  'ci-private': ['The CI workflow is intended for team mode: private mode excludes the installer state it checks from Git.', 'CI workflow рассчитан на режим team: в private состояние установщика, которое он проверяет, исключено из Git.'],
+  'ci-private': ['The CI workflow validates committed AI-KIT files, but private mode keeps them out of Git, so there is nothing to check. Use team mode for a meaningful check.', 'CI workflow проверяет закоммиченные файлы AI-KIT, но в режиме private они не попадают в Git, и проверять нечего. Для осмысленной проверки нужен режим team.'],
   'docker-interactive': ['The interactive wizard needs a terminal, so the Docker command includes -it.', 'Интерактивному мастеру нужен терминал, поэтому в Docker-команду добавлен -it.'],
+  'docker-cleanup-image': [`The published Docker image is AI-KIT ${UPSTREAM.imageVersion} and rejects --docker-cleanup. Keep the default cleanup here, or use another runner with AI-KIT ${CLEANUP_AND_FIX_PREVIEW} or later.`, `Опубликованный Docker-образ — AI-KIT ${UPSTREAM.imageVersion}, он не принимает --docker-cleanup. Оставьте очистку по умолчанию или выберите другой способ запуска с AI-KIT ${CLEANUP_AND_FIX_PREVIEW} или новее.`],
+  'docker-image': [`The published Docker image is AI-KIT ${UPSTREAM.imageVersion}, while this page follows ${UPSTREAM.version}: that image writes no docker_cleanup setting (absent means maximum), and its file list can differ.`, `Опубликованный Docker-образ — AI-KIT ${UPSTREAM.imageVersion}, а страница описывает ${UPSTREAM.version}: этот образ не записывает настройку docker_cleanup (без неё действует maximum), и список файлов может отличаться.`],
 };
 
 export const issueText = (issue: Issue, language: Language) => {

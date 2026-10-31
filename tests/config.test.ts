@@ -22,8 +22,15 @@ describe('resolution', () => {
 
   it('writes settings.json keys like install.py', () => {
     expect(Object.keys(settingsPreview(config({ preset: '', extras: ['ci', 'guards'] })))).toEqual(
-      ['project_language', 'chat_language', 'sharing_mode', 'conventions', 'upstream', 'guards', 'ci']);
-    expect(settingsPreview(config())).toMatchObject({ sharing_mode: 'private', session_start: true, guards: false, data_guards: false, native_settings: true, scoped_rules: true });
+      ['project_language', 'chat_language', 'sharing_mode', 'conventions', 'docker_cleanup', 'upstream', 'guards', 'ci']);
+    expect(settingsPreview(config())).toMatchObject({ sharing_mode: 'private', docker_cleanup: 'maximum', session_start: true, guards: false, data_guards: false, native_settings: true, scoped_rules: true });
+    expect(settingsPreview(config({ dockerCleanup: 'keep-cache' })).docker_cleanup).toBe('keep-cache');
+  });
+
+  it('defaults Docker cleanup to maximum only for a fresh installation', () => {
+    expect(resolve(config()).dockerCleanup).toBe('maximum');
+    expect(resolve(updateDefaults()).dockerCleanup).toBeNull();
+    expect(resolve({ ...updateDefaults(), dockerCleanup: 'keep-cache' }).dockerCleanup).toBe('keep-cache');
   });
 });
 
@@ -52,6 +59,18 @@ describe('validation', () => {
     expect(codes(config())).not.toContain('needs-claude');
   });
 
+  it('blocks --docker-cleanup for the older published Docker image', () => {
+    expect(codes(config({ dockerCleanup: 'keep-cache' }), 'docker')).toContain('docker-cleanup-image');
+    expect(codes(config(), 'docker')).toContain('docker-image');
+    expect(codes(config(), 'docker')).not.toContain('docker-cleanup-image');
+    expect(codes(config({ dockerCleanup: 'keep-cache' }), 'aikit')).not.toContain('docker-cleanup-image');
+  });
+
+  it('explains that the CI check needs team mode', () => {
+    expect(codes(config({ extras: ['ci'] }))).toContain('ci-private');
+    expect(codes(config({ preset: 'team', extras: ['ci'] }))).not.toContain('ci-private');
+  });
+
   it('blocks double quotes for PowerShell only', () => {
     expect(codes(config({ chatLanguage: 'a"b' }), 'aikit', 'powershell')).toContain('powershell-quote');
     expect(codes(config({ chatLanguage: 'a"b' }), 'aikit', 'posix')).not.toContain('powershell-quote');
@@ -60,15 +79,16 @@ describe('validation', () => {
 
 describe('share links', () => {
   it('round-trips a configuration', () => {
-    const value = config({ target: 'C:\\Apps\\x y', preset: '', mode: 'team', agents: ['claude', 'cursor'], chatLanguage: 'English', conventions: 'standard', extras: ['ci', 'strix'], interactive: true, check: false, acceptLocal: ['AGENTS.md'] });
+    const value = config({ target: 'C:\\Apps\\x y', preset: '', mode: 'team', agents: ['claude', 'cursor'], chatLanguage: 'English', conventions: 'standard', dockerCleanup: 'keep-cache', extras: ['ci', 'strix'], interactive: true, check: false, acceptLocal: ['AGENTS.md'] });
     expect(decode(encode({ config: value, runner: 'docker', shell: 'powershell' }))).toEqual({ config: value, runner: 'docker', shell: 'powershell' });
     const update = { ...updateDefaults(), extras: ['context7' as const] };
     expect(decode(encode({ config: update, runner: 'aikit', shell: 'posix' }))?.config).toEqual(update);
   });
 
   it('ignores unknown values', () => {
-    const shared = decode('run=evil&preset=root&agents=codex,hacker&with=ci,rm');
+    const shared = decode('run=evil&preset=root&agents=codex,hacker&with=ci,rm&cleanup=none');
     expect(shared?.runner).toBe('aikit');
+    expect(shared?.config.dockerCleanup).toBe('');
     expect(shared?.config.preset).toBe('solo');
     expect(shared?.config.agents).toEqual(['codex']);
     expect(shared?.config.extras).toEqual(['ci']);

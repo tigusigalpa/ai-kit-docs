@@ -1,6 +1,6 @@
 import { useId, type ReactNode } from 'react';
-import { AGENT_INFO, AGENTS, EXTRA_INFO, LANGUAGE_SUGGESTIONS, MODULE_EXTRAS, PRESET_EXTRAS, PRESET_INFO, PRESETS, type Agent, type Extra, type Preset } from '../data/catalog';
-import { sourceLink } from '../data/upstream';
+import { AGENT_INFO, AGENTS, DOCKER_CLEANUP_INFO, EXTRA_INFO, LANGUAGE_SUGGESTIONS, MODULE_EXTRAS, PRESET_EXTRAS, PRESET_INFO, PRESETS, type Agent, type Extra, type Preset } from '../data/catalog';
+import { guideLink, sourceLink } from '../data/upstream';
 import { freshDefaults, resolve, sortAgents, sortExtras, updateDefaults, validate, type Config, type Runner } from '../domain/config';
 import type { Shell } from '../domain/shell';
 import { pick, type Language, type T } from '../i18n';
@@ -138,7 +138,7 @@ export function Configurator({ config, onChange, runner, shell, onRunner, onShel
               : t('The saved sharing mode is kept.', 'Сохранённый режим доступа не меняется.')}</p>
         </Group>
 
-        <Group index="04" title={t('Language and conventions', 'Язык и соглашения')}>
+        <Group index="04" title={t('Language, conventions and Docker cleanup', 'Язык, соглашения и очистка Docker')}>
           <div className="two-fields">
             <div className="field">
               <label htmlFor={`${ids}-language`}>{t('Chat language', 'Язык чата')} <code>--chat-language</code></label>
@@ -157,6 +157,21 @@ export function Configurator({ config, onChange, runner, shell, onRunner, onShel
                 : <>{t('owner: opinionated Laravel rules (no DB foreign keys, public UUID, Policy + Factory + Seeder per model). ', 'owner: строгие правила Laravel (без внешних ключей в БД, публичный UUID, Policy + Factory + Seeder на модель). ')}
                   <a className="text-link" href={sourceLink('template/ai-kit/profiles/OWNER.md')} target="_blank" rel="noopener noreferrer">OWNER.md<Icon name="external" size={12}/></a></>}</p>
             </div>
+          </div>
+          <div className="field inline-field">
+            <span className="field-label">{t('Docker cleanup', 'Очистка Docker')} <code>--docker-cleanup</code></span>
+            <Segmented name="docker-cleanup" label={t('Docker cleanup', 'Очистка Docker')} value={config.dockerCleanup || 'auto'} onChange={value => set({ dockerCleanup: value === 'auto' ? '' : value })}
+              invalid={Boolean(fieldError('dockerCleanup'))}
+              options={[
+                { value: 'auto', label: fresh ? t('Default (maximum)', 'По умолчанию (maximum)') : t('Keep saved', 'Как сохранено') },
+                { value: 'maximum', label: 'maximum', hint: pick(language, DOCKER_CLEANUP_INFO.maximum) },
+                { value: 'keep-cache', label: 'keep-cache', hint: pick(language, DOCKER_CLEANUP_INFO['keep-cache']) },
+              ]}/>
+            <p className="field-hint">{resolved.dockerCleanup
+              ? `${resolved.dockerCleanup}: ${pick(language, DOCKER_CLEANUP_INFO[resolved.dockerCleanup])} `
+              : t('The saved cleanup mode is kept; an installation without the setting uses maximum. ', 'Сохранённый режим очистки не меняется; без этой настройки действует maximum. ')}
+              {t('Agents follow it after Docker tasks; the installer itself runs no cleanup. Saved as docker_cleanup. ', 'Агенты следуют ему после Docker-задач; сам установщик ничего не очищает. Сохраняется как docker_cleanup. ')}
+              <a className="text-link" href={guideLink('DOCKER', 'docker-cleanup-and-host-reclamation')} target="_blank" rel="noopener noreferrer">{t('Cleanup modes', 'Режимы очистки')}<Icon name="external" size={12}/></a></p>
           </div>
         </Group>
 

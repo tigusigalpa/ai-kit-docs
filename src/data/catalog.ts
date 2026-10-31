@@ -1,4 +1,4 @@
-// Installer vocabulary of AI-KIT 1.4.5 (scripts/install.py and integrations/agents.json).
+// Installer vocabulary of AI-KIT 1.4.6 (scripts/install.py and integrations/agents.json).
 export type Text = readonly [english: string, russian: string];
 
 export const AGENTS = ['codex', 'claude', 'cursor', 'copilot', 'gemini', 'windsurf', 'cline', 'roo', 'aider', 'kimi', 'manus'] as const;
@@ -57,8 +57,8 @@ export const EXTRA_INFO: Record<Extra, { title: Text; adds: Text; note: Text; ne
   },
   ci: {
     title: ['CI workflow', 'CI workflow'],
-    adds: ['.github/workflows/ai-kit.yml for AI-KIT installation-health checks.', '.github/workflows/ai-kit.yml для проверки состояния установки AI-KIT.'],
-    note: ['Team mode is the intended companion. Does not run your application test suite.', 'Рассчитан на режим team. Не запускает тесты вашего приложения.'],
+    adds: ['.github/workflows/ai-kit.yml validates the committed AI-KIT files with pinned actions: required documents, settings fields, recorded managed files and local links.', '.github/workflows/ai-kit.yml проверяет закоммиченные файлы AI-KIT закреплёнными actions: обязательные документы, поля настроек, записанные управляемые файлы и локальные ссылки.'],
+    note: ['Installs nothing: no AI-KIT clone or reinstall. Meaningful in team mode, because private mode keeps those files out of Git. Does not run your application tests.', 'Ничего не устанавливает: AI-KIT не клонируется и не переустанавливается. Имеет смысл в режиме team: в private эти файлы не попадают в Git. Тесты приложения не запускает.'],
   },
   'security-audit': {
     title: ['Cloudflare security-audit', 'Cloudflare security-audit'],
@@ -86,6 +86,17 @@ export const EXTRA_INFO: Record<Extra, { title: Text; adds: Text; note: Text; ne
     note: ['Codex must be selected for native helpers. Installation launches no agents or paid calls.', 'Для родных помощников нужен Codex. Установка не запускает агентов и платных вызовов.'],
     needs: 'codex',
   },
+};
+
+// --docker-cleanup values; an absent docker_cleanup setting means maximum.
+export const DOCKER_CLEANUP = ['maximum', 'keep-cache'] as const;
+export type DockerCleanup = typeof DOCKER_CLEANUP[number];
+
+export const DOCKER_CLEANUP_INFO: Record<DockerCleanup, Text> = {
+  maximum: ['After every Docker task, remove all eligible disposable Docker resources, including the dedicated builder cache, and reclaim host RAM and disk. Rebuilds start without a warm cache.',
+    'После каждой Docker-задачи удалять все подходящие одноразовые ресурсы Docker, включая кэш выделенного builder, и возвращать RAM и диск хоста. Пересборка начинается без прогретого кэша.'],
+  'keep-cache': ['Still remove task-owned containers, networks, volumes and superseded test images, but keep the dedicated project builder cache for faster rebuilds. Host RAM and disk are reclaimed only on request or under resource pressure.',
+    'Контейнеры, сети, тома и устаревшие тестовые образы задачи всё равно удаляются, а кэш выделенного builder проекта остаётся для быстрой пересборки. RAM и диск хоста освобождаются только по запросу или при нехватке ресурсов.'],
 };
 
 export const PRESETS = ['minimal', 'solo', 'team', 'strict'] as const;
