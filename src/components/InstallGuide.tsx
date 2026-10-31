@@ -1,4 +1,4 @@
-import { CLEANUP_AND_FIX_PREVIEW, guideLink, imageAtLeast, UPSTREAM } from '../data/upstream';
+import { guideLink, imageAtLeast, UPSTREAM } from '../data/upstream';
 import type { Runner } from '../domain/config';
 import type { Shell } from '../domain/shell';
 import type { Language, T } from '../i18n';
@@ -49,10 +49,10 @@ function steps(runner: Runner, shell: Shell, t: T): Step[] {
     ];
     case 'docker': return [
       { title: t('Check the Docker context and daemon', 'Проверьте Docker-контекст и демон'), code: 'docker context show\ndocker version' },
-      { title: t('Pull the published image', 'Скачайте опубликованный образ'), code: `docker pull ${UPSTREAM.image}`, note: imageAtLeast(CLEANUP_AND_FIX_PREVIEW)
+      { title: t('Pull the published image', 'Скачайте опубликованный образ'), code: `docker pull ${UPSTREAM.image}`, note: imageAtLeast(UPSTREAM.version)
         ? t('Published platform: linux/amd64. The image bundles Python, Git, the CLI and templates.', 'Платформа: linux/amd64. В образе есть Python, Git, CLI и шаблоны.')
-        : t(`Published platform: linux/amd64. The image bundles Python, Git, the CLI and templates. The latest published image is ${UPSTREAM.imageVersion}; it does not include the ${CLEANUP_AND_FIX_PREVIEW} changes such as --docker-cleanup and the doctor --fix preview.`,
-          `Платформа: linux/amd64. В образе есть Python, Git, CLI и шаблоны. Последний опубликованный образ — ${UPSTREAM.imageVersion}; изменений ${CLEANUP_AND_FIX_PREVIEW}, например --docker-cleanup и preview для doctor --fix, в нём нет.`) },
+        : t(`Published platform: linux/amd64. The image bundles Python, Git, the CLI and templates. The latest published image is ${UPSTREAM.imageVersion}; changes released after it, up to ${UPSTREAM.version}, are not in it.`,
+          `Платформа: linux/amd64. В образе есть Python, Git, CLI и шаблоны. Последний опубликованный образ — ${UPSTREAM.imageVersion}; изменений, вышедших после него вплоть до ${UPSTREAM.version}, в нём нет.`) },
       { title: t('Try the CLI', 'Проверьте CLI'), code: `docker run --rm ${UPSTREAM.image} --help`, note: t('Each command exits when done; there is no server to keep running.', 'Каждая команда завершается сама; держать сервер запущенным не нужно.') },
     ];
     case 'source': return [

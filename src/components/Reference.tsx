@@ -1,6 +1,6 @@
 import { useId, useState } from 'react';
 import { AGENTS, EXTRA_INFO, EXTRAS, PRESET_EXTRAS, PRESET_INFO, PRESETS, settingsKey, type Text } from '../data/catalog';
-import { guideLink } from '../data/upstream';
+import { guideLink, sourceLink } from '../data/upstream';
 import { pick, type Language, type T } from '../i18n';
 import { Icon } from './Icon';
 
@@ -22,6 +22,7 @@ export const MAIN_FLAGS: Flag[] = [
     fallback: ['Fresh: maximum (an absent setting means maximum). Saved as docker_cleanup; upgrade: saved.', 'Новая: maximum (без настройки действует maximum). Сохраняется как docker_cleanup; обновление: сохранённый.'] },
   { flag: '--preset', value: ['minimal | solo | team | strict', 'minimal | solo | team | strict'], does: ['Applies a bundle of sharing and managed extras; can turn managed extras off.', 'Применяет набор режима и управляемых extras; может их выключить.'], fallback: ['Omitted: nothing reapplied. Explicit flags win.', 'Без него: ничего не переприменяется. Явные флаги важнее.'] },
   { flag: '--accept-local', value: ['Managed path relative to TARGET; repeatable', 'Управляемый путь от TARGET; можно повторять'], does: ['Records an explicitly reviewed semantic merge without replacing the file.', 'Фиксирует проверенное слияние без замены файла.'], fallback: ['Not a force-overwrite; not for project-owned files.', 'Не принудительная перезапись; не для файлов проекта.'] },
+  { flag: '--allow-downgrade', value: ['Switch', 'Переключатель'], does: ['Applies even when the project records a newer AI-KIT version than this installer. Without it, preview warns and --apply (also doctor --fix --apply) refuses, so an older CLI cannot silently replace newer managed files.', 'Применяет изменения, даже если в проекте записана более новая версия AI-KIT, чем у установщика. Без него preview предупреждает, а --apply (и doctor --fix --apply) отказывается, чтобы старый CLI не заменил новые управляемые файлы незаметно.'], fallback: ['Omitted: downgrades are refused; upgrade the CLI instead. Not saved. Added in 1.5.0.', 'Без него: откат запрещён; обновите CLI. Не сохраняется. Добавлен в 1.5.0.'] },
   { flag: '-h, --help', value: ['Switch', 'Переключатель'], does: ['Prints install options and exits.', 'Печатает опции install и завершает работу.'], fallback: ['aikit --help lists commands.', 'aikit --help — список команд.'] },
 ];
 
@@ -78,7 +79,10 @@ export function Reference({ t, language }: { t: T; language: Language }) {
         <p className="ref-note">{t('Lowercase. Repeat the flag: --agent codex --agent claude, not --agent codex,claude.', 'В нижнем регистре. Повторяйте флаг: --agent codex --agent claude, а не --agent codex,claude.')}</p>
         <h3>{t('Exit codes', 'Коды выхода')}</h3>
         <dl className="exit-codes"><div><dt>0</dt><dd>{t('success', 'успех')}</dd></div><div><dt>1</dt><dd>{t('refusal; with --check also doctor errors after a successful apply', 'отказ; с --check — также ошибки doctor после успешного apply')}</dd></div><div><dt>2</dt><dd>{t('unresolved conflicts', 'неразрешённые конфликты')}</dd></div></dl>
+        <p className="ref-note">{t('aikit flags prints these options as JSON (value type, choices, saved setting, fresh default, presets). This table is tested against that schema and the installer --help of the pinned release.',
+          'aikit flags печатает эти опции в JSON (тип значения, варианты, сохраняемая настройка, значение по умолчанию, пресеты). Таблица проверяется по этой схеме и --help установщика закреплённого релиза.')}</p>
         <a className="text-link" href={guideLink('INSTALLER_FLAGS')} target="_blank" rel="noopener noreferrer">{t('Full installer flag guide', 'Полное руководство по флагам')}<Icon name="external" size={13}/></a>
+        <a className="text-link" href={sourceLink('integrations/installer-flags.json')} target="_blank" rel="noopener noreferrer">installer-flags.json<Icon name="external" size={13}/></a>
       </div>
     </div>
   </section>;

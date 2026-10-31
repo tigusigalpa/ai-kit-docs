@@ -1,4 +1,4 @@
-// Installer vocabulary of AI-KIT 1.4.6 (scripts/install.py and integrations/agents.json).
+// Installer vocabulary of AI-KIT 1.5.0 (scripts/install.py, integrations/agents.json and integrations/installer-flags.json).
 export type Text = readonly [english: string, russian: string];
 
 export const AGENTS = ['codex', 'claude', 'cursor', 'copilot', 'gemini', 'windsurf', 'cline', 'roo', 'aider', 'kimi', 'manus'] as const;

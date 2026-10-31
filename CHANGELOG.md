@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Updated the CLI contract to AI-KIT 1.5.0 (tag `v1.5.0`), which includes 1.4.7. Docker commands now use the published image `tigusigalpa/ai-kit:1.5.0`, so `--docker-cleanup` and the `doctor --fix` preview with `--fix --apply` work for the Docker runner too; the image-version checks stay generic (`OPTION_SINCE`) for a lagging image.
+- Added `--allow-downgrade` (1.5.0): a warned, update-only switch in the configurator's Advanced group, passed to preview and apply, kept in share links only when set (`downgrade=1`); the flag reference now has 25 rows. The update step and FAQ explain that an older CLI warns in preview and refuses to apply over a newer installation.
+- Added `mcp report` (1.5.0, read-only project mount in Docker) and `flags` (1.4.7, optional `--output`, written into the mounted folder in Docker) to More commands; doctor notes mention the upgrade hints and the downgrade refusal; refreshed the release note, features and reference text in English and Russian.
+- Upstream tests compare the flag reference and configurator model with `integrations/installer-flags.json`, run the generated `flags` and `mcp report` commands, and check the downgrade guard. `src/data/footprint.json` regenerated from 1.5.0 previews: only its version changed.
 - Updated the CLI contract to AI-KIT 1.4.6 (`763bef0`): the configurator, `settings.json` preview, share links (`cleanup`) and flag reference (now 24 rows) cover `--docker-cleanup maximum|keep-cache`, persisted as `docker_cleanup` with fresh default `maximum`.
 - `doctor --fix` now generates a preview command and a separate `--fix --apply` write, with notes that `--apply` needs `--fix` and that 1.4.5 and earlier write with `--fix` alone.
 - Docker commands keep the latest published image `tigusigalpa/ai-kit:1.4.5` (tracked as `imageVersion`): `--docker-cleanup` is blocked for that runner, the doctor repair uses commands the image accepts, and notes explain the 1.4.5 differences.

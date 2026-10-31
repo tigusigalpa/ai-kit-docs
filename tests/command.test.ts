@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { doctorFix, installCommand, installOptions, invocation, sessionSetup, upgradeCommand } from '../src/domain/command';
+import { doctorFix, flagsCommand, flagsOutputProblem, installCommand, installOptions, invocation, mcpReport, sessionSetup, upgradeCommand } from '../src/domain/command';
 import { UPSTREAM } from '../src/data/upstream';
 import { freshDefaults, updateDefaults, type Config } from '../src/domain/config';
 import { quote } from '../src/domain/shell';
@@ -26,6 +26,14 @@ describe('install commands', () => {
     expect(installOptions(config())).not.toContain('--docker-cleanup');
     expect(installOptions(config({ preset: '', agents: [], conventions: 'owner', dockerCleanup: 'keep-cache' }))).toEqual(['--conventions', 'owner', '--docker-cleanup', 'keep-cache']);
     expect(installCommand({ ...updateDefaults(), dockerCleanup: 'maximum' }, 'aikit', 'posix', 'apply')).toBe('aikit install . --docker-cleanup maximum --apply --check');
+  });
+
+  it('passes --allow-downgrade only for an update, in preview and apply', () => {
+    expect(installOptions(config({ allowDowngrade: true }))).not.toContain('--allow-downgrade');
+    const update = { ...updateDefaults(), acceptLocal: ['AGENTS.md'], allowDowngrade: true, interactive: true };
+    expect(installOptions(update)).toEqual(['--accept-local', 'AGENTS.md', '--allow-downgrade', '--interactive']);
+    expect(installCommand({ ...updateDefaults(), allowDowngrade: true }, 'aikit', 'posix', 'preview')).toBe('aikit install . --allow-downgrade');
+    expect(installCommand({ ...updateDefaults(), allowDowngrade: true }, 'aikit', 'posix', 'apply')).toBe('aikit install . --allow-downgrade --apply --check');
   });
 
   it('drops a mode equal to the preset mode and extras the preset already enables', () => {
@@ -66,14 +74,47 @@ describe('install commands', () => {
     expect(doctorFix('source', 'posix', '/srv/app').preview).toBe('python3 aikit_cli.py doctor /srv/app --fix');
   });
 
-  it('uses commands the published Docker image accepts for the doctor repair', () => {
-    // Image 1.4.5 applies --fix directly and rejects --apply; its installer preview shows the same plan.
-    expect(UPSTREAM.image).toBe('tigusigalpa/ai-kit:1.4.5');
+  it('uses commands the Docker image accepts for the doctor repair', () => {
+    expect(UPSTREAM.image).toBe(`tigusigalpa/ai-kit:${UPSTREAM.imageVersion}`);
     expect(doctorFix('docker', 'posix', '.')).toEqual({
+      legacyImage: false,
+      preview: 'docker run "${runtime[@]}" --mount "type=bind,source=$app_path,target=/workspace,readonly" "$image" doctor /workspace --fix',
+      apply: 'docker run "${runtime[@]}" --mount "type=bind,source=$app_path,target=/workspace" "$image" doctor /workspace --fix --apply',
+    });
+    // An image older than 1.4.6 applies --fix directly and rejects --apply; its installer preview shows the same plan.
+    expect(doctorFix('docker', 'posix', '.', '1.4.5')).toEqual({
       legacyImage: true,
       preview: 'docker run "${runtime[@]}" --mount "type=bind,source=$app_path,target=/workspace,readonly" "$image" install /workspace',
       apply: 'docker run "${runtime[@]}" --mount "type=bind,source=$app_path,target=/workspace" "$image" doctor /workspace --fix',
     });
+    expect(doctorFix('aikit', 'posix', '.', '1.4.5').legacyImage).toBe(false);
+  });
+
+  it('reviews MCP servers through a read-only project mount', () => {
+    expect(mcpReport('aikit', 'posix', '.')).toBe('aikit mcp report .');
+    expect(mcpReport('module', 'powershell', 'C:\\My App')).toBe("python -m aikit.aikit_cli mcp report 'C:\\My App'");
+    expect(mcpReport('source', 'posix', '/srv/app')).toBe('python3 aikit_cli.py mcp report /srv/app');
+    expect(mcpReport('docker', 'powershell', '.')).toBe(
+      'docker run @runtime --mount "type=bind,source=$appPath,target=/workspace,readonly" $image mcp report /workspace');
+  });
+
+  it('prints the flag schema or writes it with --output', () => {
+    expect(flagsCommand('aikit', 'posix')).toBe('aikit flags');
+    expect(flagsCommand('venv', 'powershell', ' docs\\installer flags.json ')).toBe(`& "$cliEnv\\Scripts\\aikit.exe" flags --output 'docs\\installer flags.json'`);
+    expect(flagsCommand('source', 'posix', 'installer-flags.json')).toBe('python3 aikit_cli.py flags --output installer-flags.json');
+    // Docker has no project mount for printing and writes into the mounted folder otherwise.
+    expect(flagsCommand('docker', 'posix')).toBe('docker run "${runtime[@]}" "$image" flags');
+    expect(flagsCommand('docker', 'powershell', '.\\docs\\flags.json')).toBe(
+      'docker run @runtime --mount "type=bind,source=$appPath,target=/workspace" $image flags --output /workspace/docs/flags.json');
+  });
+
+  it('checks the --output path', () => {
+    expect(flagsOutputProblem('aikit', 'posix', 'installer-flags.json')).toBeNull();
+    expect(flagsOutputProblem('aikit', 'posix', '/tmp/flags.json')).toBeNull();
+    expect(flagsOutputProblem('aikit', 'posix', '  ')).toBe('empty');
+    for (const path of ['-x', 'docs/', '.', '..', 'a\u0007b']) expect(flagsOutputProblem('aikit', 'posix', path)).toBe('invalid');
+    for (const path of ['/tmp/flags.json', 'C:\\flags.json', '../flags.json']) expect(flagsOutputProblem('docker', 'posix', path)).toBe('docker-path');
+    expect(flagsOutputProblem('aikit', 'powershell', 'a"b.json')).toBe('powershell-quote');
   });
 
   it('prepares session variables only where needed', () => {

@@ -4,15 +4,15 @@ A static React + TypeScript site for [AI-KIT](https://github.com/tigusigalpa/ai-
 
 Live site: <https://tigusigalpa.github.io/ai-kit-docs/>
 
-The CLI contract is pinned to **AI-KIT 1.4.6**, tag `v1.4.6`, commit `763bef0dfe600bac6b2a131d254061abcf0ffb6a` ([src/data/upstream.ts](src/data/upstream.ts)). The latest published Docker image is still `1.4.5`, recorded separately as `imageVersion`; Docker commands use that tag and avoid options it does not accept.
+The CLI contract is pinned to **AI-KIT 1.5.0**, tag `v1.5.0`; the exact commit is `commit` in [src/data/upstream.ts](src/data/upstream.ts) and `AIKIT_COMMIT` in the [Pages workflow](.github/workflows/pages.yml). Docker commands use the published image `tigusigalpa/ai-kit:1.5.0`, recorded separately as `imageVersion`; when the image lags behind the release, options and commands it does not accept are blocked or replaced for the Docker runner.
 
 ## What the site covers
 
-- **Installation** for five runners — `aikit` from pip/pipx, `python -m aikit.aikit_cli`, an isolated virtual environment, the published `tigusigalpa/ai-kit:1.4.5` Docker image and a source checkout — each for Windows PowerShell and Linux/macOS Bash.
-- **Configurator** for a new installation or an update: target folder, 11 AI clients, presets, sharing mode, chat language, conventions, Docker cleanup mode, all eleven `--with-*` modules, `--interactive`, `--check` and `--accept-local`. It shows the preview and apply commands, Docker session setup, the bootstrap step per client, the resulting `ai-kit/settings.json` and the files a preview lists for an empty folder.
+- **Installation** for five runners — `aikit` from pip/pipx, `python -m aikit.aikit_cli`, an isolated virtual environment, the published `tigusigalpa/ai-kit:1.5.0` Docker image and a source checkout — each for Windows PowerShell and Linux/macOS Bash.
+- **Configurator** for a new installation or an update: target folder, 11 AI clients, presets, sharing mode, chat language, conventions, Docker cleanup mode, all eleven `--with-*` modules, `--interactive`, `--check`, `--accept-local` and, for an update only, `--allow-downgrade`. It shows the preview and apply commands, Docker session setup, the bootstrap step per client, the resulting `ai-kit/settings.json` and the files a preview lists for an empty folder.
 - **Share links**: the configuration is encoded in the URL query only.
-- **More commands**: `doctor` (including the `--fix` preview and `--fix --apply` repair), `route`, `context select`, `providers` and `check` with the same runner.
-- **Reference**: every installer flag with a filter, the preset matrix, valid agent names and exit codes; features and FAQ.
+- **More commands**: `doctor` (including the `--fix` preview and `--fix --apply` repair), `mcp report` (read-only MCP server review), `route`, `context select`, `providers`, `flags` (installer option schema, optionally `--output`) and `check` with the same runner.
+- **Reference**: every installer flag (25 rows) with a filter, the preset matrix, valid agent names and exit codes; features and FAQ.
 - English and Russian, light and dark themes, bundled fonts (Onest, JetBrains Mono), no analytics or remote requests.
 
 ## Develop
@@ -38,15 +38,17 @@ Production files are written to `dist/`.
 
 - `tests/command.test.ts`, `tests/config.test.ts` — command generation, option resolution, validation and share links.
 - `tests/shell.test.ts` — passes quoted values through real Bash and PowerShell, when installed, and checks the exact arguments a program receives.
-- `tests/upstream.test.ts` — when `tmp/upstream-ai-kit` holds the pinned AI-KIT checkout, runs 21 generated option sets through the real `scripts/install.py` preview (mode, preset, extras and the full list of writes must match the site's model) and 8 through `--apply` in temporary folders (the written `settings.json` must equal the preview, key order included). It also compares the flag reference with the options and choices in the installer's `--help` usage and checks that `doctor --fix` writes nothing, `--fix --apply` restores a removed file and `--apply` alone is refused.
+- `tests/upstream.test.ts` — when `tmp/upstream-ai-kit` (or the folder in `AIKIT_UPSTREAM`) holds the pinned AI-KIT checkout, runs 21 generated option sets through the real `scripts/install.py` preview (mode, preset, extras and the full list of writes must match the site's model) and 8 through `--apply` in temporary folders (the written `settings.json` must equal the preview, key order included). It also compares the flag reference with the options and choices in the installer's `--help` usage and with `integrations/installer-flags.json` (value types, choices, repeatable options, saved settings, fresh defaults and presets); runs the generated `flags` and `mcp report` commands through the checkout's `aikit_cli.py`; checks that `doctor --fix` writes nothing, `--fix --apply` restores a removed file and `--apply` alone is refused; and checks the downgrade guard: a preview warning, refused `--apply` and `doctor --fix --apply`, and a successful `--allow-downgrade` apply.
 
 To run the upstream checks locally:
 
 ```sh
 git clone https://github.com/tigusigalpa/ai-kit.git tmp/upstream-ai-kit
-git -C tmp/upstream-ai-kit checkout --detach 763bef0dfe600bac6b2a131d254061abcf0ffb6a
+git -C tmp/upstream-ai-kit checkout --detach "$(sed -n 's/^  AIKIT_COMMIT: //p' .github/workflows/pages.yml)"
 npm test
 ```
+
+To use another checkout of that commit, set `AIKIT_UPSTREAM` to its folder.
 
 The file list model in `src/data/footprint.json` is generated from installer previews of an empty folder:
 
@@ -56,8 +58,8 @@ python -I scripts/footprint.py tmp/upstream-ai-kit > src/data/footprint.json
 
 ## Updating to a new AI-KIT release
 
-1. Check out the new tag in `tmp/upstream-ai-kit` and review `scripts/install.py`, `scripts/doctor.py`, `integrations/agents.json` and `docs/guide/INSTALLER_FLAGS.md` for changes.
-2. Update `src/data/upstream.ts` (set `imageVersion` only to an image tag that is actually published on Docker Hub), the catalog in `src/data/catalog.ts`, the flag rows in `src/components/Reference.tsx` and `AIKIT_COMMIT` in `.github/workflows/pages.yml`.
+1. Check out the new tag in `tmp/upstream-ai-kit` and review `scripts/install.py`, `scripts/doctor.py`, `integrations/agents.json`, `integrations/installer-flags.json` and `docs/guide/INSTALLER_FLAGS.md` for changes.
+2. Update `src/data/upstream.ts` (set `imageVersion` only to an image tag that is actually published on Docker Hub, and record in `OPTION_SINCE` the release that introduced each new installer option), the catalog in `src/data/catalog.ts`, the flag rows in `src/components/Reference.tsx` and `AIKIT_COMMIT` in `.github/workflows/pages.yml`.
 3. Regenerate `src/data/footprint.json` and run `npm run check`.
 
 ## Deployment

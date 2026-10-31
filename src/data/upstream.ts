@@ -1,12 +1,12 @@
 // Pinned AI-KIT release that every generated command, flag and file list is checked against.
 // The Docker Hub image can lag behind the release: imageVersion is the latest published image tag.
-const IMAGE_VERSION: string = '1.4.5';
+const IMAGE_VERSION: string = '1.5.0';
 
 export const UPSTREAM = {
-  version: '1.4.6',
-  released: '2026-10-30',
-  tag: 'v1.4.6',
-  commit: '763bef0dfe600bac6b2a131d254061abcf0ffb6a',
+  version: '1.5.0',
+  released: '2026-10-31',
+  tag: 'v1.5.0',
+  commit: '6dcd61d999dcbb51d100d575efcfd0cab50515bc',
   repository: 'https://github.com/tigusigalpa/ai-kit',
   package: 'ai-kit-python',
   pypi: 'https://pypi.org/project/ai-kit-python/',
@@ -19,17 +19,29 @@ export const UPSTREAM = {
 export const sourceLink = (path: string) => `${UPSTREAM.repository}/blob/${UPSTREAM.tag}/${path}`;
 export const readmeLink = (anchor: string) => `${UPSTREAM.repository}/blob/${UPSTREAM.tag}/README.md#${anchor}`;
 const versionParts = (version: string) => version.split('.').map(Number);
-/** Whether the published Docker image is at least `version`, i.e. includes what that release introduced. */
-export const imageAtLeast = (version: string) => {
-  const image = versionParts(UPSTREAM.imageVersion);
+/**
+ * Whether a Docker image (by default the published one) is at least `version`, i.e. includes what that release
+ * introduced. Docker runner commands use it to block or replace what a lagging image would reject.
+ */
+export const imageAtLeast = (version: string, image: string = UPSTREAM.imageVersion) => {
+  const have = versionParts(image);
   const wanted = versionParts(version);
-  for (let index = 0; index < Math.max(image.length, wanted.length); index++) {
-    const difference = (image[index] ?? 0) - (wanted[index] ?? 0);
+  for (let index = 0; index < Math.max(have.length, wanted.length); index++) {
+    const difference = (have[index] ?? 0) - (wanted[index] ?? 0);
     if (difference) return difference > 0;
   }
   return true;
 };
 /** Release that added --docker-cleanup and the doctor --fix preview with --fix --apply. */
 export const CLEANUP_AND_FIX_PREVIEW = '1.4.6';
+/** Release that added `aikit flags`. */
+export const FLAGS_COMMAND = '1.4.7';
+/** Release that added `aikit mcp report` and the --allow-downgrade guard. */
+export const MCP_REPORT_AND_DOWNGRADE_GUARD = '1.5.0';
+/** Release that introduced each installer option an older image would reject. */
+export const OPTION_SINCE: Readonly<Record<string, string>> = {
+  '--docker-cleanup': CLEANUP_AND_FIX_PREVIEW,
+  '--allow-downgrade': MCP_REPORT_AND_DOWNGRADE_GUARD,
+};
 /** A user guide under docs/guide/ of the pinned release. */
 export const guideLink = (guide: string, anchor?: string) => sourceLink(`docs/guide/${guide}.md${anchor ? `#${anchor}` : ''}`);
