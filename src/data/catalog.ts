@@ -1,8 +1,12 @@
-// Installer vocabulary of AI-KIT 1.5.0 (scripts/install.py, integrations/agents.json and integrations/installer-flags.json).
+// Installer vocabulary of AI-KIT 1.6.0 (scripts/install.py, integrations/agents.json and integrations/installer-flags.json).
 export type Text = readonly [english: string, russian: string];
 
-export const AGENTS = ['codex', 'claude', 'cursor', 'copilot', 'gemini', 'windsurf', 'cline', 'roo', 'aider', 'kimi', 'manus'] as const;
+export const AGENTS = ['codex', 'claude', 'cursor', 'copilot', 'gemini', 'devin', 'cline', 'roo', 'aider', 'kimi', 'manus', 'windsurf'] as const;
 export type Agent = typeof AGENTS[number];
+/** Kept for existing installations; Devin (Windsurf) replaces it and also loads its rules. */
+export const LEGACY_AGENTS: readonly Agent[] = ['windsurf'];
+/** The 11 current clients, without legacy adapters. */
+export const CURRENT_AGENTS = AGENTS.filter(agent => !LEGACY_AGENTS.includes(agent));
 
 export const AGENT_INFO: Record<Agent, { name: string; installs: Text; bootstrap?: string }> = {
   codex: { name: 'Codex', installs: ['AGENTS.md and .agents/skills/', 'AGENTS.md и .agents/skills/'], bootstrap: '$ai-kit-bootstrap' },
@@ -10,18 +14,21 @@ export const AGENT_INFO: Record<Agent, { name: string; installs: Text; bootstrap
   cursor: { name: 'Cursor', installs: ['.cursor/rules/ with module globs, .cursorignore secrets', '.cursor/rules/ с glob модулей, секреты в .cursorignore'] },
   copilot: { name: 'GitHub Copilot', installs: ['copilot-instructions.md and per-module .instructions.md', 'copilot-instructions.md и .instructions.md по модулям'] },
   gemini: { name: 'Gemini CLI', installs: ['GEMINI.md and .geminiignore; reads the shared skills', 'GEMINI.md и .geminiignore; читает общие skills'] },
-  windsurf: { name: 'Windsurf', installs: ['Native rule folder with glob-scoped module rules', 'Родная папка правил с правилами модулей по glob'] },
+  devin: { name: 'Devin (Windsurf)', installs: ['.devin/rules/ai-kit.md and glob-scoped module rules', '.devin/rules/ai-kit.md и правила модулей по glob'] },
   cline: { name: 'Cline', installs: ['Native rule folder with path-scoped module rules', 'Родная папка правил с правилами модулей по путям'] },
   roo: { name: 'Roo', installs: ['Native rule folder', 'Родная папка правил'] },
   aider: { name: 'Aider', installs: ['CONVENTIONS.md and .aiderignore, plus model routing config', 'CONVENTIONS.md и .aiderignore, плюс конфиг маршрутизации моделей'] },
   kimi: { name: 'Kimi', installs: ['Short KIMI.md entry file', 'Короткий входной файл KIMI.md'] },
   manus: { name: 'Manus', installs: ['Short MANUS.md entry file', 'Короткий входной файл MANUS.md'] },
+  windsurf: { name: 'Windsurf (legacy)', installs: ['Legacy .windsurf/rules/ adapter for existing installations; Devin also loads it', 'Прежний адаптер .windsurf/rules/ для существующих установок; Devin тоже его читает'] },
 };
 
 export const PRESET_EXTRAS = ['session-start', 'guards', 'data-guards', 'native-settings', 'scoped-rules'] as const;
-export const MODULE_EXTRAS = ['ci', 'security-audit', 'strix', 'context7', 'web-design', 'orchestration'] as const;
+export const MODULE_EXTRAS = ['ci', 'security-audit', 'strix', 'context7', 'web-design', 'orchestration', 'uuid', 'claude-github'] as const;
 // Order of EXTRA_SETTINGS_KEYS in install.py; settings.json keys follow it.
-export const EXTRAS = ['session-start', 'guards', 'data-guards', 'native-settings', 'scoped-rules', 'ci', 'security-audit', 'strix', 'context7', 'web-design', 'orchestration'] as const;
+export const EXTRAS = ['session-start', 'guards', 'data-guards', 'native-settings', 'scoped-rules', 'ci', 'security-audit', 'strix', 'context7', 'web-design', 'orchestration', 'uuid', 'claude-github'] as const;
+/** Extras whose false value the settings template already holds, right after chat_language. */
+export const TEMPLATE_EXTRAS: readonly Extra[] = ['uuid', 'claude-github'];
 export type Extra = typeof EXTRAS[number];
 
 export const settingsKey = (extra: Extra) => extra.replaceAll('-', '_');
@@ -52,7 +59,7 @@ export const EXTRA_INFO: Record<Extra, { title: Text; adds: Text; note: Text; ne
   },
   'scoped-rules': {
     title: ['Scoped rules', 'Правила по модулям'],
-    adds: ['Path-scoped module rules for clients with a scoped format (Claude, Cursor, Copilot, Windsurf, Cline).', 'Правила модулей по путям для клиентов с таким форматом (Claude, Cursor, Copilot, Windsurf, Cline).'],
+    adds: ['Path-scoped module rules for clients with a scoped format (Claude, Cursor, Copilot, Devin or legacy Windsurf, Cline).', 'Правила модулей по путям для клиентов с таким форматом (Claude, Cursor, Copilot, Devin или прежний Windsurf, Cline).'],
     note: ['Generated from the module map; rerun after reviewed module-map changes.', 'Строятся по карте модулей; перезапускайте после её изменений.'],
   },
   ci: {
@@ -86,6 +93,17 @@ export const EXTRA_INFO: Record<Extra, { title: Text; adds: Text; note: Text; ne
     note: ['Codex must be selected for native helpers. Installation launches no agents or paid calls.', 'Для родных помощников нужен Codex. Установка не запускает агентов и платных вызовов.'],
     needs: 'codex',
   },
+  uuid: {
+    title: ['Public UUIDs', 'Публичные UUID'],
+    adds: ['Public UUID guidance for new entities exposed through URLs, APIs or integrations, in any confirmed stack, plus a short AGENTS entry.', 'Правила публичных UUID для новых сущностей, доступных через URL, API или интеграции, в любом подтверждённом стеке, плюс короткая запись в AGENTS.'],
+    note: ['Off by default and independent of presets and owner/standard conventions. Installation changes no code, schema or routes; existing identifiers are preserved.', 'По умолчанию выключено и не зависит от пресетов и соглашений owner/standard. Установка не меняет код, схему и маршруты; существующие идентификаторы сохраняются.'],
+  },
+  'claude-github': {
+    title: ['Claude GitHub identity', 'GitHub-личность в Claude'],
+    adds: ['Before an authorized commit, Claude checks the active GitHub account and uses your human author and committer identity.', 'Перед разрешённым коммитом Claude проверяет активный аккаунт GitHub и использует ваше имя как автора и коммиттера.'],
+    note: ['Needs Claude selected. No login, Git config change, commit or push during installation. Every Claude install already keeps human authorship and drops Claude’s commit-credit trailer.', 'Нужен выбранный Claude. При установке нет входа, изменения Git-настроек, коммита и push. Любая установка Claude и так сохраняет ваше авторство и убирает приписку Claude в коммитах.'],
+    needs: 'claude',
+  },
 };
 
 // --docker-cleanup values; an absent docker_cleanup setting means maximum.
@@ -110,6 +128,6 @@ export const PRESET_INFO: Record<Preset, { mode: Mode | null; extras: readonly E
   strict: { mode: null, extras: PRESET_EXTRAS, summary: ['All five: session start, Git and data guards, settings, rules.', 'Все пять: старт, Git- и data-guards, настройки, правила.'] },
 };
 
-export const STACKS = ['Go', 'PHP', 'Laravel', 'Filament 5', 'Moodle', 'Python', 'Frontend', 'Library/SDK', 'Rust', '.NET', 'Java', 'Terraform/Helm'] as const;
+export const STACKS = ['Go', 'PHP', 'Laravel', 'Filament 5', 'Moodle', 'Python', 'JavaScript / Node.js', 'Frontend', 'Library/SDK', 'Rust', '.NET', 'Java', 'Terraform/Helm'] as const;
 
-export const LANGUAGE_SUGGESTIONS = ['Russian', 'English', 'Ukrainian', 'German', 'Spanish', 'French', 'Portuguese', 'Italian', 'Polish', 'Turkish', 'Chinese', 'Japanese', 'Korean'];
+export const LANGUAGE_SUGGESTIONS = ['English', 'Russian', 'Ukrainian', 'German', 'Spanish', 'French', 'Portuguese', 'Italian', 'Polish', 'Turkish', 'Chinese', 'Japanese', 'Korean'];

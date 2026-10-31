@@ -1,5 +1,5 @@
 import { useId, type ReactNode } from 'react';
-import { AGENT_INFO, AGENTS, DOCKER_CLEANUP_INFO, EXTRA_INFO, LANGUAGE_SUGGESTIONS, MODULE_EXTRAS, PRESET_EXTRAS, PRESET_INFO, PRESETS, type Agent, type Extra, type Preset } from '../data/catalog';
+import { AGENT_INFO, AGENTS, CURRENT_AGENTS, DOCKER_CLEANUP_INFO, EXTRA_INFO, LANGUAGE_SUGGESTIONS, MODULE_EXTRAS, PRESET_EXTRAS, PRESET_INFO, PRESETS, type Agent, type Extra, type Preset } from '../data/catalog';
 import { guideLink, sourceLink } from '../data/upstream';
 import { freshDefaults, resolve, sortAgents, sortExtras, updateDefaults, validate, type Config, type Runner } from '../domain/config';
 import type { Shell } from '../domain/shell';
@@ -101,7 +101,7 @@ export function Configurator({ config, onChange, runner, shell, onRunner, onShel
           </div>
           <div className="field-actions">
             <button type="button" className="chip-button" onClick={() => set({ agents: ['codex', 'claude'] })}>Codex + Claude</button>
-            <button type="button" className="chip-button" onClick={() => set({ agents: [...AGENTS] })}>{t('All 11', 'Все 11')}</button>
+            <button type="button" className="chip-button" onClick={() => set({ agents: [...CURRENT_AGENTS] })}>{t(`All ${CURRENT_AGENTS.length}`, `Все ${CURRENT_AGENTS.length}`)}</button>
             <button type="button" className="chip-button" onClick={() => set({ agents: [] })}>{fresh ? t('Default (Codex)', 'По умолчанию (Codex)') : t('Keep saved', 'Оставить сохранённых')}</button>
           </div>
         </Group>
@@ -143,10 +143,12 @@ export function Configurator({ config, onChange, runner, shell, onRunner, onShel
             <div className="field">
               <label htmlFor={`${ids}-language`}>{t('Chat language', 'Язык чата')} <code>--chat-language</code></label>
               <input id={`${ids}-language`} className="text-input" list={`${ids}-languages`} value={config.chatLanguage} maxLength={80}
-                placeholder={fresh ? t('Russian (default)', 'Russian (по умолчанию)') : t('Keep saved', 'Как сохранено')}
+                placeholder={fresh ? t('English (default)', 'English (по умолчанию)') : t('Keep saved', 'Как сохранено')}
                 aria-invalid={Boolean(fieldError('chatLanguage'))} onChange={event => set({ chatLanguage: event.target.value })}/>
               <datalist id={`${ids}-languages`}>{LANGUAGE_SUGGESTIONS.map(name => <option key={name} value={name}/>)}</datalist>
-              <p className="field-hint">{t('Replies and plans use it; authored project files stay English.', 'На нём агент отвечает и пишет планы; файлы проекта остаются на английском.')}</p>
+              <p className="field-hint">{fresh
+                ? t('Replies and plans use it; authored project files stay English. Since 1.6.0 the default is English; type Russian for Russian replies.', 'На нём агент отвечает и пишет планы; файлы проекта остаются на английском. С версии 1.6.0 по умолчанию English; для ответов на русском укажите Russian.')
+                : t('The saved language is kept, including Russian. Set English or another language explicitly to change it.', 'Сохранённый язык не меняется, в том числе Russian. Чтобы сменить его, укажите English или другой язык явно.')}</p>
             </div>
             <div className="field">
               <span className="field-label">{t('Conventions', 'Соглашения')} <code>--conventions</code></span>
@@ -154,7 +156,7 @@ export function Configurator({ config, onChange, runner, shell, onRunner, onShel
                 options={[{ value: 'auto', label: fresh ? t('Default', 'По умолч.') : t('Saved', 'Как есть') }, { value: 'owner', label: 'owner' }, { value: 'standard', label: 'standard' }]}/>
               <p className="field-hint">{(resolved.conventions ?? 'owner') === 'standard'
                 ? t('standard: follow the project’s own conventions and the stack’s normal guidance.', 'standard: следовать соглашениям проекта и обычным правилам стека.')
-                : <>{t('owner: opinionated Laravel rules (no DB foreign keys, public UUID, Policy + Factory + Seeder per model). ', 'owner: строгие правила Laravel (без внешних ключей в БД, публичный UUID, Policy + Factory + Seeder на модель). ')}
+                : <>{t('owner: opinionated Laravel rules (no DB foreign keys, Policy + Factory + Seeder per model, one table per migration). Public UUIDs are a separate --with-uuid option. ', 'owner: строгие правила Laravel (без внешних ключей в БД, Policy + Factory + Seeder на модель, одна таблица на миграцию). Публичные UUID — отдельная опция --with-uuid. ')}
                   <a className="text-link" href={sourceLink('template/ai-kit/profiles/OWNER.md')} target="_blank" rel="noopener noreferrer">OWNER.md<Icon name="external" size={12}/></a></>}</p>
             </div>
           </div>

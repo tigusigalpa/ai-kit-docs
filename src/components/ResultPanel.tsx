@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { AGENT_INFO, type Agent } from '../data/catalog';
-import { CLEANUP_AND_FIX_PREVIEW, imageAtLeast, UPSTREAM } from '../data/upstream';
+import { CLEANUP_AND_FIX_PREVIEW, imageAtLeast, readmeLink, UPSTREAM } from '../data/upstream';
 import { installCommand, sessionSetup, upgradeCommand } from '../domain/command';
 import { hasErrors, resolve, settingsPreview, type Config, type Issue, type Runner } from '../domain/config';
 import { footprint, footprintVersion } from '../domain/footprint';
@@ -71,8 +71,8 @@ export function ResultPanel({ config, runner, shell, issues, t, language, onRese
         : <div className="command-stack">
           {config.scenario === 'update' && <CodeBlock t={t} code={upgradeCommand(runner, shell)} lang={lang} step="00" tone="muted"
             title={t('Update the CLI first (optional)', 'Сначала обновите CLI (по желанию)')}>
-            {t('This updates the CLI only. The project is updated by the preview and apply below. A CLI older than the AI-KIT version the project records warns in preview and refuses to apply (since 1.5.0), so update it first.',
-              'Это обновляет только CLI. Сам проект обновят preview и apply ниже. CLI старше версии AI-KIT, записанной в проекте, предупреждает в preview и отказывается применять изменения (начиная с 1.5.0), поэтому сначала обновите его.')}</CodeBlock>}
+            <>{t('This updates the CLI only. The project is updated by the preview and apply below. A CLI older than the AI-KIT version the project records warns in preview and refuses to apply (since 1.5.0), so update it first.',
+              'Это обновляет только CLI. Сам проект обновят preview и apply ниже. CLI старше версии AI-KIT, записанной в проекте, предупреждает в preview и отказывается применять изменения (начиная с 1.5.0), поэтому сначала обновите его.')} <a className="text-link" href={readmeLink('update-ai-kit')} target="_blank" rel="noopener noreferrer">{t('Update guide', 'Как обновлять')}<Icon name="external" size={12}/></a></></CodeBlock>}
           {setup && <CodeBlock t={t} code={setup} lang={lang} step="··" tone="muted" title={t('Session setup — once per terminal', 'Настройка сессии — раз на терминал')}/>}
           <CodeBlock t={t} code={installCommand(config, runner, shell, 'preview')} lang={lang} step="01" title={t('Preview — writes nothing', 'Preview — ничего не пишет')}>
             {t('Review writes, conflicts, adapter_conflicts, warnings and extras in the JSON plan.', 'Проверьте в JSON-плане writes, conflicts, adapter_conflicts, warnings и extras.')}</CodeBlock>

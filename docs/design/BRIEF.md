@@ -10,7 +10,7 @@ This is project-owned design memory. Current project facts remain in [PROJECT_CO
 - Required behavior: client-side generation only; no backend, accounts, analytics, remote fonts or network calls; share links keep choices in the URL query.
 - Confirmed stack: React 19.3.1, Vite 8.3.5, TypeScript 5.9, Vitest 5; deployed to GitHub Pages from `.github/workflows/pages.yml`.
 - Languages, devices and accessibility: English default with Russian toggle (browser language or saved choice); light and dark themes; phone to wide desktop; keyboard-operable controls, visible focus, reduced motion respected.
-- Content and assets: text derived from the AI-KIT 1.4.5 README, the 1.4.6–1.5.0 changelog, user guides (`docs/guide/`), installer, doctor, MCP report, flag schema and agent registry; original SVG logo and icons; fonts Onest and JetBrains Mono from `@fontsource-variable` (OFL), bundled.
+- Content and assets: text derived from the AI-KIT 1.4.5 README, the 1.4.6–1.6.0 changelog, user guides (`docs/guide/`), installer, doctor, MCP report, flag schema and agent registry; original SVG logo and icons; fonts Onest and JetBrains Mono from `@fontsource-variable` (OFL), bundled.
 - Open choices: a custom domain is not configured; TypeUI was not connected for this version.
 
 ## Annotated references
@@ -21,6 +21,7 @@ This is project-owned design memory. Current project facts remain in [PROJECT_CO
 | AI-KIT README v1.4.5 | Content, flag semantics, presets, Docker and Windows procedures | Tag `v1.4.5` | Read in full for installer and Docker sections |
 | AI-KIT v1.4.6 changelog, `docs/guide/INSTALLER_FLAGS.md`, `scripts/install.py`, `scripts/doctor.py` | `--docker-cleanup`, `doctor --fix` preview/apply, `--with-ci` contract, release summary | Tag `v1.4.6`, read 2026-10-30 | Flags and choices also compared with the installer `--help` in tests |
 | AI-KIT v1.4.7 and v1.5.0 changelog, `integrations/installer-flags.json`, `docs/guide/INSTALL.md#review-mcp-servers`, `scripts/flags.py`, `scripts/mcp_report.py`, `scripts/install.py`, `scripts/doctor.py` | `aikit flags`, `aikit mcp report`, `--allow-downgrade` and the doctor upgrade hints | Release commit of 1.5.0, read 2026-10-31 | Flag reference also compared with the schema; new commands and the downgrade guard run in tests |
+| AI-KIT v1.6.0 release notes, changelog, `scripts/install.py`, `integrations/installer-flags.json`, `integrations/agents.json`, `template/ai-kit/settings.json`, `UUID.md`, `CLAUDE-GITHUB.md`, `stacks/JAVASCRIPT.md`, README update and TypeUI sections | English chat default, `--agent devin`, `--with-uuid`, `--with-claude-github`, JavaScript/Node.js profile, settings key order | Tag `v1.6.0`, read 2026-10-31 | Checked in upstream tests; Docker Hub and PyPI 1.6.0 confirmed through their public APIs |
 
 ## Decisions
 

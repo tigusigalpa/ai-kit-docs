@@ -63,6 +63,9 @@ const scenarios: [string, Config][] = [
   ['minimal plus explicit', { ...freshDefaults(), preset: 'minimal', agents: [...AGENTS], extras: ['native-settings', 'ci'] }],
   ['team with private', { ...freshDefaults(), preset: 'team', mode: 'private', agents: ['codex', 'cursor', 'gemini', 'aider'] }],
   ['unicode language', { ...freshDefaults(), chatLanguage: 'Português do Brasil' }],
+  ['1.6.0 options', { ...freshDefaults(), preset: 'strict', agents: ['codex', 'claude', 'devin'], extras: ['uuid', 'claude-github', 'web-design'], chatLanguage: 'Russian' }],
+  ['devin and legacy windsurf', { ...freshDefaults(), preset: 'team', agents: ['devin', 'windsurf', 'cursor'], extras: ['uuid'] }],
+  ['claude-github without claude', { ...freshDefaults(), preset: '', agents: ['codex'], extras: ['claude-github'] }],
   ...[...sample(14)].map((config, index): [string, Config] => [`sample ${index + 1}`, config]),
 ];
 
@@ -84,11 +87,20 @@ describe.skipIf(!available)(`AI-KIT ${UPSTREAM.version} installer`, () => {
     expect(plan.writes).toEqual(footprint(resolved.agents ?? ['codex'], resolved.extras, resolved.mode ?? 'private'));
   });
 
-  it.each(scenarios.slice(0, 8))('apply writes the predicted settings.json: %s', (_name, config) => {
+  it.each(scenarios.slice(0, 10))('apply writes the predicted settings.json: %s', (_name, config) => {
     const { status, target } = run(config, true);
     expect(status).toBe(0);
     const written = readFileSync(join(target, 'ai-kit', 'settings.json'), 'utf8');
     expect(JSON.stringify(JSON.parse(written))).toBe(JSON.stringify(settingsPreview(config)));
+  });
+
+  it('reports the 1.6.0 client warnings the configurator mirrors', () => {
+    const lonely = run({ ...freshDefaults(), preset: '', agents: ['codex'], extras: ['claude-github'] }, false);
+    expect(lonely.plan.warnings.join('\n')).toContain('claude-github guidance requires --agent claude');
+    const legacy = run({ ...freshDefaults(), preset: '', agents: ['windsurf'] }, true);
+    expect(legacy.status).toBe(0);
+    const moving = runIn(legacy.target, { ...updateDefaults(), agents: ['devin', 'windsurf'] }, false);
+    expect(moving.plan.warnings.join('\n')).toContain('Devin (Windsurf) also loads legacy .windsurf rules');
   });
 
   it('accepts exactly the options in the flag reference', () => {
@@ -99,7 +111,7 @@ describe.skipIf(!available)(`AI-KIT ${UPSTREAM.version} installer`, () => {
     const documented = [...MAIN_FLAGS, ...MODULE_FLAGS].map(row => row.flag).filter(flag => flag !== 'TARGET')
       .map(flag => flag === '-h, --help' ? '-h' : flag).sort();
     expect(documented).toEqual(accepted);
-    expect(MAIN_FLAGS.length + MODULE_FLAGS.length).toBe(25);
+    expect(MAIN_FLAGS.length + MODULE_FLAGS.length).toBe(27);
     const choices = Object.fromEntries([...usage.matchAll(/(--[a-z-]+) \{([^}]+)\}/g)].map(match => [match[1], match[2].split(',')]));
     expect(choices['--docker-cleanup']).toEqual([...DOCKER_CLEANUP]);
     expect(choices['--preset']).toEqual([...PRESETS]);
@@ -147,11 +159,12 @@ describe.skipIf(!available)(`AI-KIT ${UPSTREAM.version} installer`, () => {
     expect(options['--agent'].choices).toEqual([...AGENTS].sort());
     // Every saved setting is a settings.json key, and the fresh defaults match the site's model.
     for (const extra of EXTRAS) expect(options[`--with-${extra}`].setting).toBe(settingsKey(extra));
-    const bare = { ...freshDefaults(), preset: '' as const, agents: [], extras: [...EXTRAS] };
-    const settings = settingsPreview(bare);
-    for (const option of schema.options.filter(item => item.setting)) expect(Object.keys(settings), option.option).toContain(option.setting);
+    const bare = { ...freshDefaults(), preset: '' as const, agents: [] };
+    const everything = settingsPreview({ ...bare, extras: [...EXTRAS] });
+    for (const option of schema.options.filter(item => item.setting)) expect(Object.keys(everything), option.option).toContain(option.setting);
+    const defaults = settingsPreview(bare);
     for (const option of schema.options.filter(item => 'fresh_default' in item)) {
-      const modelled = option.option === '--agent' ? resolve(bare).agents : settings[option.setting ?? ''];
+      const modelled = option.option === '--agent' ? resolve(bare).agents : defaults[option.setting ?? ''];
       expect(modelled, option.option).toEqual(option.fresh_default);
     }
     expect(Object.keys(schema.presets)).toEqual([...PRESETS]);

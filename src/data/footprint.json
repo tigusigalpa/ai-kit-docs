@@ -6,6 +6,7 @@
      "CONVENTIONS.md"
     ],
     "claude": [
+     ".claude/settings.local.json",
      ".claude/skills/ai-kit-bootstrap/SKILL.md",
      ".claude/skills/ai-kit-review/SKILL.md",
      ".claude/skills/ai-kit-sync-context/SKILL.md",
@@ -15,6 +16,7 @@
      ".claude/skills/go-work/SKILL.md",
      ".claude/skills/infra-work/SKILL.md",
      ".claude/skills/java-work/SKILL.md",
+     ".claude/skills/javascript-work/SKILL.md",
      ".claude/skills/laravel-work/SKILL.md",
      ".claude/skills/library-work/SKILL.md",
      ".claude/skills/moodle-work/SKILL.md",
@@ -33,6 +35,9 @@
     ],
     "cursor": [
      ".cursor/rules/ai-kit.mdc"
+    ],
+    "devin": [
+     ".devin/rules/ai-kit.md"
     ],
     "gemini": [
      "GEMINI.md"
@@ -60,6 +65,7 @@
     ".agents/skills/go-work/SKILL.md",
     ".agents/skills/infra-work/SKILL.md",
     ".agents/skills/java-work/SKILL.md",
+    ".agents/skills/javascript-work/SKILL.md",
     ".agents/skills/laravel-work/SKILL.md",
     ".agents/skills/library-work/SKILL.md",
     ".agents/skills/moodle-work/SKILL.md",
@@ -111,6 +117,7 @@
     "ai-kit/stacks/GO.md",
     "ai-kit/stacks/INFRA.md",
     "ai-kit/stacks/JAVA.md",
+    "ai-kit/stacks/JAVASCRIPT.md",
     "ai-kit/stacks/LARAVEL.md",
     "ai-kit/stacks/LIBRARY.md",
     "ai-kit/stacks/MOODLE.md",
@@ -127,6 +134,12 @@
       ".github/workflows/ai-kit.yml"
      ]
     },
+    "claude-github": {
+     "byAgent": {},
+     "common": [
+      "ai-kit/CLAUDE-GITHUB.md"
+     ]
+    },
     "context7": {
      "byAgent": {
       "claude": [
@@ -138,28 +151,17 @@
      ]
     },
     "data-guards": {
-     "byAgent": {
-      "claude": [
-       ".claude/settings.local.json"
-      ]
-     },
+     "byAgent": {},
      "common": []
     },
     "guards": {
-     "byAgent": {
-      "claude": [
-       ".claude/settings.local.json"
-      ]
-     },
+     "byAgent": {},
      "common": []
     },
     "native-settings": {
      "byAgent": {
       "aider": [
        ".aiderignore"
-      ],
-      "claude": [
-       ".claude/settings.local.json"
       ],
       "cursor": [
        ".cursorignore"
@@ -220,11 +222,7 @@
      ]
     },
     "session-start": {
-     "byAgent": {
-      "claude": [
-       ".claude/settings.local.json"
-      ]
-     },
+     "byAgent": {},
      "common": [
       ".agents/hooks/session-start.md",
       ".agents/hooks/session-start.sh"
@@ -251,6 +249,12 @@
       "ai-kit/vendor/strix/owasp-top-10-testing/SKILL.md",
       "ai-kit/vendor/strix/penetration-testing-with-strix/SKILL.md",
       "ai-kit/vendor/strix/web-app-penetration-testing/SKILL.md"
+     ]
+    },
+    "uuid": {
+     "byAgent": {},
+     "common": [
+      "ai-kit/UUID.md"
      ]
     },
     "web-design": {
@@ -285,6 +289,7 @@
      "CONVENTIONS.md"
     ],
     "claude": [
+     ".claude/settings.json",
      ".claude/skills/ai-kit-bootstrap/SKILL.md",
      ".claude/skills/ai-kit-review/SKILL.md",
      ".claude/skills/ai-kit-sync-context/SKILL.md",
@@ -294,6 +299,7 @@
      ".claude/skills/go-work/SKILL.md",
      ".claude/skills/infra-work/SKILL.md",
      ".claude/skills/java-work/SKILL.md",
+     ".claude/skills/javascript-work/SKILL.md",
      ".claude/skills/laravel-work/SKILL.md",
      ".claude/skills/library-work/SKILL.md",
      ".claude/skills/moodle-work/SKILL.md",
@@ -312,6 +318,9 @@
     ],
     "cursor": [
      ".cursor/rules/ai-kit.mdc"
+    ],
+    "devin": [
+     ".devin/rules/ai-kit.md"
     ],
     "gemini": [
      "GEMINI.md"
@@ -339,6 +348,7 @@
     ".agents/skills/go-work/SKILL.md",
     ".agents/skills/infra-work/SKILL.md",
     ".agents/skills/java-work/SKILL.md",
+    ".agents/skills/javascript-work/SKILL.md",
     ".agents/skills/laravel-work/SKILL.md",
     ".agents/skills/library-work/SKILL.md",
     ".agents/skills/moodle-work/SKILL.md",
@@ -390,6 +400,7 @@
     "ai-kit/stacks/GO.md",
     "ai-kit/stacks/INFRA.md",
     "ai-kit/stacks/JAVA.md",
+    "ai-kit/stacks/JAVASCRIPT.md",
     "ai-kit/stacks/LARAVEL.md",
     "ai-kit/stacks/LIBRARY.md",
     "ai-kit/stacks/MOODLE.md",
@@ -406,6 +417,12 @@
       ".github/workflows/ai-kit.yml"
      ]
     },
+    "claude-github": {
+     "byAgent": {},
+     "common": [
+      "ai-kit/CLAUDE-GITHUB.md"
+     ]
+    },
     "context7": {
      "byAgent": {
       "claude": [
@@ -417,28 +434,17 @@
      ]
     },
     "data-guards": {
-     "byAgent": {
-      "claude": [
-       ".claude/settings.json"
-      ]
-     },
+     "byAgent": {},
      "common": []
     },
     "guards": {
-     "byAgent": {
-      "claude": [
-       ".claude/settings.json"
-      ]
-     },
+     "byAgent": {},
      "common": []
     },
     "native-settings": {
      "byAgent": {
       "aider": [
        ".aiderignore"
-      ],
-      "claude": [
-       ".claude/settings.json"
       ],
       "cursor": [
        ".cursorignore"
@@ -499,11 +505,7 @@
      ]
     },
     "session-start": {
-     "byAgent": {
-      "claude": [
-       ".claude/settings.json"
-      ]
-     },
+     "byAgent": {},
      "common": [
       ".agents/hooks/session-start.md",
       ".agents/hooks/session-start.sh"
@@ -530,6 +532,12 @@
       "ai-kit/vendor/strix/owasp-top-10-testing/SKILL.md",
       "ai-kit/vendor/strix/penetration-testing-with-strix/SKILL.md",
       "ai-kit/vendor/strix/web-app-penetration-testing/SKILL.md"
+     ]
+    },
+    "uuid": {
+     "byAgent": {},
+     "common": [
+      "ai-kit/UUID.md"
      ]
     },
     "web-design": {
@@ -559,5 +567,5 @@
    }
   }
  },
- "version": "1.5.0"
+ "version": "1.6.0"
 }

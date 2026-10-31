@@ -1,12 +1,12 @@
 // Pinned AI-KIT release that every generated command, flag and file list is checked against.
 // The Docker Hub image can lag behind the release: imageVersion is the latest published image tag.
-const IMAGE_VERSION: string = '1.5.0';
+const IMAGE_VERSION: string = '1.6.0';
 
 export const UPSTREAM = {
-  version: '1.5.0',
+  version: '1.6.0',
   released: '2026-10-31',
-  tag: 'v1.5.0',
-  commit: '6dcd61d999dcbb51d100d575efcfd0cab50515bc',
+  tag: 'v1.6.0',
+  commit: 'd4cdaaacf54dd46d0dd34ce7387341594140d28e',
   repository: 'https://github.com/tigusigalpa/ai-kit',
   package: 'ai-kit-python',
   pypi: 'https://pypi.org/project/ai-kit-python/',
@@ -38,10 +38,15 @@ export const CLEANUP_AND_FIX_PREVIEW = '1.4.6';
 export const FLAGS_COMMAND = '1.4.7';
 /** Release that added `aikit mcp report` and the --allow-downgrade guard. */
 export const MCP_REPORT_AND_DOWNGRADE_GUARD = '1.5.0';
-/** Release that introduced each installer option an older image would reject. */
+/** Release that added `--agent devin`, `--with-uuid` and `--with-claude-github`. */
+export const DEVIN_UUID_CLAUDE_GITHUB = '1.6.0';
+/** Release that introduced each installer option (or `--agent` value) an older image would reject. */
 export const OPTION_SINCE: Readonly<Record<string, string>> = {
   '--docker-cleanup': CLEANUP_AND_FIX_PREVIEW,
   '--allow-downgrade': MCP_REPORT_AND_DOWNGRADE_GUARD,
+  '--with-uuid': DEVIN_UUID_CLAUDE_GITHUB,
+  '--with-claude-github': DEVIN_UUID_CLAUDE_GITHUB,
+  '--agent devin': DEVIN_UUID_CLAUDE_GITHUB,
 };
 /** A user guide under docs/guide/ of the pinned release. */
 export const guideLink = (guide: string, anchor?: string) => sourceLink(`docs/guide/${guide}.md${anchor ? `#${anchor}` : ''}`);
