@@ -14,9 +14,9 @@ import sys
 import tempfile
 from pathlib import Path
 
-AGENTS = ["aider", "claude", "cline", "codex", "copilot", "cursor", "gemini", "kimi", "manus", "roo", "windsurf"]
+AGENTS = ["aider", "claude", "cline", "codex", "copilot", "cursor", "devin", "gemini", "kimi", "manus", "roo", "windsurf"]
 EXTRAS = ["session-start", "guards", "data-guards", "native-settings", "scoped-rules", "ci",
-          "security-audit", "strix", "context7", "web-design", "orchestration"]
+          "security-audit", "strix", "context7", "web-design", "orchestration", "uuid", "claude-github"]
 MODES = ["private", "team"]
 
 

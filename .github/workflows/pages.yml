@@ -14,7 +14,7 @@ concurrency:
 
 env:
   # Keep in sync with src/data/upstream.ts.
-  AIKIT_COMMIT: 6dcd61d999dcbb51d100d575efcfd0cab50515bc
+  AIKIT_COMMIT: d4cdaaacf54dd46d0dd34ce7387341594140d28e
 
 jobs:
   check:

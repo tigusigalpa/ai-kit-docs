@@ -22,9 +22,19 @@ describe('resolution', () => {
 
   it('writes settings.json keys like install.py', () => {
     expect(Object.keys(settingsPreview(config({ preset: '', extras: ['ci', 'guards'] })))).toEqual(
-      ['project_language', 'chat_language', 'sharing_mode', 'conventions', 'docker_cleanup', 'upstream', 'guards', 'ci']);
+      ['project_language', 'chat_language', 'uuid', 'claude_github', 'sharing_mode', 'conventions', 'docker_cleanup', 'upstream', 'guards', 'ci']);
+    // 1.6.0 template keys keep their position when enabled.
+    expect(Object.entries(settingsPreview(config({ preset: '', extras: ['claude-github', 'uuid'] }))).slice(1, 4))
+      .toEqual([['chat_language', 'English'], ['uuid', true], ['claude_github', true]]);
     expect(settingsPreview(config())).toMatchObject({ sharing_mode: 'private', docker_cleanup: 'maximum', session_start: true, guards: false, data_guards: false, native_settings: true, scoped_rules: true });
     expect(settingsPreview(config({ dockerCleanup: 'keep-cache' })).docker_cleanup).toBe('keep-cache');
+  });
+
+  it('defaults chat to English for a fresh installation and keeps the saved language on update', () => {
+    expect(resolve(config()).chatLanguage).toBe('English');
+    expect(settingsPreview(config()).chat_language).toBe('English');
+    expect(resolve(updateDefaults()).chatLanguage).toBeNull();
+    expect(resolve({ ...updateDefaults(), chatLanguage: 'Russian' }).chatLanguage).toBe('Russian');
   });
 
   it('defaults Docker cleanup to maximum only for a fresh installation', () => {
@@ -57,10 +67,18 @@ describe('validation', () => {
     expect(codes(config({ agents: ['codex'], extras: ['guards'] }))).toContain('needs-claude');
     expect(codes(config({ agents: ['claude'], extras: ['orchestration'] }))).toContain('needs-codex');
     expect(codes(config())).not.toContain('needs-claude');
+    expect(validate(config({ preset: '', agents: ['codex'], extras: ['claude-github'] }), 'aikit', 'posix').find(issue => issue.code === 'needs-claude')?.detail).toBe('claude-github');
+    expect(codes(config({ agents: ['claude'], extras: ['claude-github', 'uuid'] }))).not.toContain('needs-claude');
+  });
+
+  it('explains Devin and the legacy Windsurf adapter', () => {
+    expect(codes(config({ agents: ['devin', 'windsurf'] }))).toContain('devin-and-windsurf');
+    expect(codes(config({ agents: ['windsurf'] }))).toContain('windsurf-legacy');
+    expect(codes(config({ agents: ['devin'], extras: ['scoped-rules'] })).filter(code => /windsurf|scoped-rules/.test(code))).toEqual([]);
   });
 
   it('accepts every option with the published Docker image', () => {
-    const update = { ...updateDefaults(), dockerCleanup: 'keep-cache' as const, allowDowngrade: true };
+    const update = { ...updateDefaults(), dockerCleanup: 'keep-cache' as const, allowDowngrade: true, agents: ['devin' as const], extras: ['uuid' as const, 'claude-github' as const] };
     expect(codes(update, 'docker')).not.toContain('docker-option-image');
     expect(codes(config(), 'docker')).not.toContain('docker-image');
   });
@@ -74,6 +92,10 @@ describe('validation', () => {
     expect(lagging(config()).map(issue => issue.code)).not.toContain('docker-option-image');
     expect(validate(update, 'docker', 'posix', '1.4.6').filter(issue => issue.code === 'docker-option-image').map(issue => issue.detail)).toEqual(['--allow-downgrade']);
     expect(lagging(update, 'aikit').map(issue => issue.code)).not.toContain('docker-option-image');
+    const v160 = { ...updateDefaults(), agents: ['claude' as const, 'devin' as const], extras: ['uuid' as const, 'claude-github' as const] };
+    expect(validate(v160, 'docker', 'posix', '1.5.0').filter(issue => issue.code === 'docker-option-image').map(issue => [issue.detail, issue.field]))
+      .toEqual([['--with-uuid', 'extras'], ['--with-claude-github', 'extras'], ['--agent devin', 'agents']]);
+    expect(validate(v160, 'docker', 'posix', '1.6.0').map(issue => issue.code)).not.toContain('docker-option-image');
   });
 
   it('warns about a deliberate downgrade only when updating', () => {

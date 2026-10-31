@@ -55,6 +55,22 @@ Required states added by this update:
 
 Not checked in this update: rendering of the states above in a browser (light/dark, English/Russian, 375px phone), GitHub Actions and the deployed site.
 
+## Evidence — 2026-10-31, AI-KIT 1.6.0 update
+
+Required states added by this update:
+
+- Clients: 12 chips with `devin` as Devin (Windsurf) and `windsurf` as "Windsurf (legacy)"; "All 11" selects the current clients only; selecting both shows the migration note with `aikit adapters retire . --agent windsurf`, `windsurf` alone shows the legacy note.
+- Modules: `--with-uuid` and `--with-claude-github` (Claude Code badge; warning without Claude); owner conventions text no longer mentions UUIDs; chat language placeholder and hint say English by default, saved language on update.
+- `settings.json` tab: `uuid` and `claude_github` directly after `chat_language`.
+- Reference 27 / 27 flags; release note, 13 stack profiles, 11-client strip without the legacy adapter, two new FAQ entries.
+
+| Check | Result |
+| --- | --- |
+| Share link with strict preset, `codex,claude,devin,windsurf`, `uuid,claude-github`, Russian (local dev server, Russian UI, 1440×900) | Preview/apply commands with all flags, the Devin/Windsurf note, bootstrap for Codex and Claude plus the prompt for Devin and Windsurf, 95 files, settings key order as above |
+| 375×812 phone | No element overflows the viewport; fixed during review: the "keeps mode" pill of the minimal preset was clipped (pre-existing) |
+| Browser console | No errors |
+| Automated: `npm test` | 94 Vitest tests: 24 installer previews and 10 applies through the real AI-KIT 1.6.0 release commit (including `uuid`, `claude-github`, `devin`), flag comparison with `--help` and `installer-flags.json`, the installer's claude-github and Devin/Windsurf warnings, `aikit flags`, `aikit mcp report`, `doctor --fix` and the downgrade guard |
+
 ## Not verified
 
 - Screen-reader walkthrough and a full keyboard-only pass.

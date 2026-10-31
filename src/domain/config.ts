@@ -1,4 +1,4 @@
-import { AGENTS, EXTRAS, PRESET_EXTRAS, PRESET_INFO, settingsKey, type Agent, type DockerCleanup, type Extra, type Mode, type Preset } from '../data/catalog';
+import { AGENTS, EXTRAS, LEGACY_AGENTS, PRESET_EXTRAS, PRESET_INFO, settingsKey, TEMPLATE_EXTRAS, type Agent, type DockerCleanup, type Extra, type Mode, type Preset } from '../data/catalog';
 import { imageAtLeast, OPTION_SINCE, UPSTREAM } from '../data/upstream';
 import { hasControlCharacters, type Shell } from './shell';
 
@@ -71,7 +71,7 @@ export function resolve(config: Config): Resolved {
   return {
     mode, modeSource,
     agents: config.agents.length ? sortAgents(config.agents) : fresh ? ['codex'] : null,
-    chatLanguage: config.chatLanguage.trim() ? config.chatLanguage : fresh ? 'Russian' : null,
+    chatLanguage: config.chatLanguage.trim() ? config.chatLanguage : fresh ? 'English' : null,
     conventions: config.conventions || (fresh ? 'owner' : null),
     dockerCleanup: config.dockerCleanup || (fresh ? 'maximum' : null),
     extras, presetExtras, presetDisabled, extraFlags,
@@ -83,13 +83,15 @@ export function settingsPreview(config: Config): Record<string, unknown> {
   const resolved = resolve(config);
   const settings: Record<string, unknown> = {
     project_language: 'English',
-    chat_language: resolved.chatLanguage ?? 'Russian',
+    chat_language: resolved.chatLanguage ?? 'English',
+    // The settings template holds these keys as false; enabling them keeps their position.
+    ...Object.fromEntries(TEMPLATE_EXTRAS.map(extra => [settingsKey(extra), resolved.extras.includes(extra)])),
     sharing_mode: resolved.mode ?? 'private',
     conventions: resolved.conventions ?? 'owner',
     docker_cleanup: resolved.dockerCleanup ?? 'maximum',
     upstream: { url: 'https://github.com/tigusigalpa/ai-kit', ref: 'main', source_directory: 'template' },
   };
-  for (const extra of EXTRAS) {
+  for (const extra of EXTRAS.filter(item => !TEMPLATE_EXTRAS.includes(item))) {
     const managed = config.preset !== '' && (PRESET_EXTRAS as readonly Extra[]).includes(extra);
     if (managed || resolved.extras.includes(extra)) settings[settingsKey(extra)] = resolved.extras.includes(extra);
   }
@@ -134,15 +136,18 @@ export function validate(config: Config, runner: Runner, shell: Shell, image: st
   if (config.acceptLocal.length && config.scenario === 'fresh') issues.push({ severity: 'info', code: 'accept-fresh' });
   const agents = resolved.agents;
   if (agents) {
-    const claudeNeeded = resolved.extras.filter(extra => ['session-start', 'guards', 'data-guards'].includes(extra));
+    const claudeNeeded = resolved.extras.filter(extra => ['session-start', 'guards', 'data-guards', 'claude-github'].includes(extra));
     if (claudeNeeded.length && !agents.includes('claude')) issues.push({ severity: 'warning', code: 'needs-claude', detail: claudeNeeded.join(', ') });
     if (resolved.extras.includes('native-settings') && !agents.some(agent => ['claude', 'cursor', 'gemini', 'aider'].includes(agent))) {
       issues.push({ severity: 'warning', code: 'native-settings-clients' });
     }
-    if (resolved.extras.includes('scoped-rules') && !agents.some(agent => ['claude', 'cursor', 'copilot', 'windsurf', 'cline'].includes(agent))) {
+    if (resolved.extras.includes('scoped-rules') && !agents.some(agent => ['claude', 'cursor', 'copilot', 'devin', 'windsurf', 'cline'].includes(agent))) {
       issues.push({ severity: 'warning', code: 'scoped-rules-clients' });
     }
     if (resolved.extras.includes('orchestration') && !agents.includes('codex')) issues.push({ severity: 'warning', code: 'needs-codex' });
+    // Devin loads both .devin/rules/ and the legacy .windsurf/rules/, so selecting both duplicates guidance.
+    if (agents.includes('devin') && agents.includes('windsurf')) issues.push({ severity: 'info', code: 'devin-and-windsurf' });
+    else if (agents.some(agent => LEGACY_AGENTS.includes(agent))) issues.push({ severity: 'info', code: 'windsurf-legacy' });
   }
   if (config.scenario === 'update' && config.agents.length) issues.push({ severity: 'info', code: 'agents-replace' });
   if (config.scenario === 'update' && resolved.presetDisabled.length) issues.push({ severity: 'info', code: 'preset-disables', detail: resolved.presetDisabled.join(', ') });
@@ -158,6 +163,9 @@ export function validate(config: Config, runner: Runner, shell: Shell, image: st
     const gated: [option: string, used: boolean, field: keyof Config][] = [
       ['--docker-cleanup', Boolean(config.dockerCleanup), 'dockerCleanup'],
       ['--allow-downgrade', allowsDowngrade(config), 'allowDowngrade'],
+      ['--with-uuid', resolved.extraFlags.includes('uuid'), 'extras'],
+      ['--with-claude-github', resolved.extraFlags.includes('claude-github'), 'extras'],
+      ['--agent devin', config.agents.includes('devin'), 'agents'],
     ];
     for (const [option, used, field] of gated) {
       if (used && !imageAtLeast(OPTION_SINCE[option], image)) issues.push({ severity: 'error', code: 'docker-option-image', field, detail: option });

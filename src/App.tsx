@@ -6,7 +6,7 @@ import { Icon, Logo } from './components/Icon';
 import { InstallGuide } from './components/InstallGuide';
 import { MoreCommands } from './components/MoreCommands';
 import { Reference } from './components/Reference';
-import { AGENT_INFO, AGENTS, PRESET_INFO } from './data/catalog';
+import { AGENT_INFO, CURRENT_AGENTS, PRESET_INFO } from './data/catalog';
 import { sourceLink, UPSTREAM } from './data/upstream';
 import { freshDefaults, type Config, type Runner } from './domain/config';
 import { footprint } from './domain/footprint';
@@ -135,7 +135,7 @@ export default function App() {
 
       <div className="clients-strip" aria-label={t('Supported AI clients', 'Поддерживаемые AI-клиенты')}>
         <span className="strip-label">{t('WORKS WITH', 'РАБОТАЕТ С')}</span>
-        <ul>{AGENTS.map(agent => <li key={agent}>{AGENT_INFO[agent].name}</li>)}</ul>
+        <ul>{CURRENT_AGENTS.map(agent => <li key={agent}>{AGENT_INFO[agent].name}</li>)}</ul>
       </div>
 
       <section className="section how-section" aria-labelledby="how-title">
@@ -155,8 +155,8 @@ export default function App() {
 
       <div className="release-note">
         <span className="badge">v{UPSTREAM.version}</span>
-        <p>{t('New: aikit mcp report reviews the project’s MCP servers without printing secrets or contacting any server; an older CLI no longer downgrades a newer installation unless you pass --allow-downgrade; doctor names the upgrade commands. 1.4.7 added aikit flags, a JSON schema of every installer option.',
-          'Новое: aikit mcp report проверяет MCP-серверы проекта, не выводя секретов и не обращаясь к серверам; старый CLI больше не откатывает более новую установку без --allow-downgrade; doctor подсказывает команды обновления. В 1.4.7 появилась команда aikit flags — JSON-схема всех опций установщика.')}
+        <p>{t('New: chat replies default to English (saved languages stay on upgrade); --agent devin for Devin (Windsurf); a JavaScript/TypeScript/Node.js profile; optional public UUIDs with --with-uuid, no longer part of owner conventions; Claude keeps your human authorship, and --with-claude-github verifies your GitHub identity before authorized commits. 1.5.0 added aikit mcp report and the downgrade guard.',
+          'Новое: ответы в чате по умолчанию на английском (сохранённый язык при обновлении не меняется); --agent devin для Devin (Windsurf); профиль JavaScript/TypeScript/Node.js; публичные UUID стали отдельной опцией --with-uuid и больше не входят в соглашения owner; Claude сохраняет ваше авторство, а --with-claude-github проверяет вашу GitHub-личность перед разрешёнными коммитами. В 1.5.0 появились aikit mcp report и защита от отката.')}
           {UPSTREAM.imageVersion !== UPSTREAM.version && t(` The published Docker image is still ${UPSTREAM.imageVersion}.`, ` Опубликованный Docker-образ — по-прежнему ${UPSTREAM.imageVersion}.`)}</p>
         <a className="text-link" href={`${UPSTREAM.repository}/blob/${UPSTREAM.tag}/CHANGELOG.md`} target="_blank" rel="noopener noreferrer">{t('Changelog', 'Что нового')}<Icon name="external" size={13}/></a>
       </div>
