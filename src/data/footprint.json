@@ -251,6 +251,13 @@
       "ai-kit/vendor/strix/web-app-penetration-testing/SKILL.md"
      ]
     },
+    "task-workflow": {
+     "byAgent": {},
+     "common": [
+      "ai-kit/TASK-WORKFLOW.md",
+      "ai-kit/task.example.json"
+     ]
+    },
     "uuid": {
      "byAgent": {},
      "common": [
@@ -534,6 +541,13 @@
       "ai-kit/vendor/strix/web-app-penetration-testing/SKILL.md"
      ]
     },
+    "task-workflow": {
+     "byAgent": {},
+     "common": [
+      "ai-kit/TASK-WORKFLOW.md",
+      "ai-kit/task.example.json"
+     ]
+    },
     "uuid": {
      "byAgent": {},
      "common": [
@@ -567,5 +581,5 @@
    }
   }
  },
- "version": "1.6.0"
+ "version": "1.9.0"
 }

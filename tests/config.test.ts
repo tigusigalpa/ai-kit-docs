@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { freshDefaults, resolve, settingsPreview, updateDefaults, validate, type Config } from '../src/domain/config';
+import { freshDefaults, modelExceptions, resolve, settingsPreview, updateDefaults, validate, type Config } from '../src/domain/config';
 import { buildTree, footprint } from '../src/domain/footprint';
 import { decode, encode } from '../src/domain/share';
 
@@ -22,9 +22,10 @@ describe('resolution', () => {
 
   it('writes settings.json keys like install.py', () => {
     expect(Object.keys(settingsPreview(config({ preset: '', extras: ['ci', 'guards'] })))).toEqual(
-      ['project_language', 'chat_language', 'uuid', 'claude_github', 'sharing_mode', 'conventions', 'docker_cleanup', 'upstream', 'guards', 'ci']);
+      ['model_switching_enabled', 'instruction_profile', 'model_switching_exceptions', 'project_language', 'chat_language', 'uuid', 'claude_github', 'task_workflow',
+        'sharing_mode', 'conventions', 'docker_cleanup', 'upstream', 'guards', 'ci']);
     // 1.6.0 template keys keep their position when enabled.
-    expect(Object.entries(settingsPreview(config({ preset: '', extras: ['claude-github', 'uuid'] }))).slice(1, 4))
+    expect(Object.entries(settingsPreview(config({ preset: '', extras: ['claude-github', 'uuid'] }))).slice(4, 7))
       .toEqual([['chat_language', 'English'], ['uuid', true], ['claude_github', true]]);
     expect(settingsPreview(config())).toMatchObject({ sharing_mode: 'private', docker_cleanup: 'maximum', session_start: true, guards: false, data_guards: false, native_settings: true, scoped_rules: true });
     expect(settingsPreview(config({ dockerCleanup: 'keep-cache' })).docker_cleanup).toBe('keep-cache');
@@ -35,6 +36,19 @@ describe('resolution', () => {
     expect(settingsPreview(config()).chat_language).toBe('English');
     expect(resolve(updateDefaults()).chatLanguage).toBeNull();
     expect(resolve({ ...updateDefaults(), chatLanguage: 'Russian' }).chatLanguage).toBe('Russian');
+  });
+
+  it('resolves model controls and normalizes protected models like the installer', () => {
+    expect(settingsPreview(config())).toMatchObject({ model_switching_enabled: true, instruction_profile: 'full', model_switching_exceptions: [] });
+    const value = config({ modelSwitching: 'false', instructionProfile: 'minimal', modelFamilies: ['k3.1', 'astra'], customModels: [' Fable ', 'provider/custom-v1', 'PROVIDER/custom-v1', ''] });
+    expect(modelExceptions(value)).toEqual(['astra', 'k3.1', 'fable', 'provider/custom-v1']);
+    expect(Object.entries(settingsPreview(value)).slice(0, 3)).toEqual([
+      ['model_switching_enabled', false], ['instruction_profile', 'minimal'], ['model_switching_exceptions', ['astra', 'k3.1', 'fable', 'provider/custom-v1']]]);
+    // An update that appends keeps a saved list we cannot see; a replacement is known.
+    const update = { ...updateDefaults(), modelFamilies: ['fable' as const] };
+    expect(resolve(update).modelExceptions).toBeNull();
+    expect(resolve({ ...update, exceptionsMode: 'replace' }).modelExceptions).toEqual(['fable']);
+    expect(resolve(updateDefaults()).modelSwitching).toBeNull();
   });
 
   it('defaults Docker cleanup to maximum only for a fresh installation', () => {
@@ -109,6 +123,26 @@ describe('validation', () => {
     expect(codes(config({ preset: 'team', extras: ['ci'] }))).not.toContain('ci-private');
   });
 
+  it('checks protected model entries and explains their effect', () => {
+    for (const name of ['-x', 'none', 'x'.repeat(161), 'bad\u0007']) expect(codes(config({ customModels: [name] }))).toContain('model-name');
+    expect(codes(config({ customModels: ['provider/model v2', ''] }))).not.toContain('model-name');
+    expect(codes(config({ customModels: Array.from({ length: 33 }, (_, index) => `m${index}`) }))).toContain('model-count');
+    expect(codes(config({ modelSwitching: 'false', modelFamilies: ['fable'] }))).toContain('exceptions-switching-off');
+    expect(codes(config({ extras: ['orchestration'], modelFamilies: ['astra'] }))).toContain('helpers-inherit');
+    expect(codes({ ...updateDefaults(), exceptionsMode: 'replace' })).toContain('exceptions-clear');
+    expect(codes({ ...updateDefaults(), exceptionsMode: 'replace', modelFamilies: ['fable'] })).toContain('exceptions-replace');
+    expect(codes(config({ customModels: ['a"b'] }), 'aikit', 'powershell')).toContain('powershell-quote');
+  });
+
+  it('gates the 1.7.0-1.9.0 options for an older Docker image', () => {
+    const value = { ...updateDefaults(), extras: ['task-workflow' as const], modelSwitching: 'false' as const, instructionProfile: 'minimal' as const, modelFamilies: ['fable' as const] };
+    const gated = (image: string) => validate(value, 'docker', 'posix', image).filter(issue => issue.code === 'docker-option-image').map(issue => issue.detail);
+    expect(gated('1.6.0')).toEqual(['--with-task-workflow', '--model-switching-enabled', '--instruction-profile', '--protect-model']);
+    expect(gated('1.8.0')).toEqual(['--protect-model']);
+    expect(gated('1.9.0')).toEqual([]);
+    expect(validate({ ...value, exceptionsMode: 'replace' }, 'docker', 'posix', '1.8.0').filter(issue => issue.code === 'docker-option-image').map(issue => issue.detail)).toEqual(['--model-switching-exceptions']);
+  });
+
   it('blocks double quotes for PowerShell only', () => {
     expect(codes(config({ chatLanguage: 'a"b' }), 'aikit', 'powershell')).toContain('powershell-quote');
     expect(codes(config({ chatLanguage: 'a"b' }), 'aikit', 'posix')).not.toContain('powershell-quote');
@@ -124,6 +158,12 @@ describe('share links', () => {
     const downgrade = { ...updateDefaults(), allowDowngrade: true };
     expect(encode({ config: downgrade, runner: 'aikit', shell: 'posix' })).toContain('downgrade=1');
     expect(decode(encode({ config: downgrade, runner: 'aikit', shell: 'posix' }))?.config).toEqual(downgrade);
+  });
+
+  it('round-trips model controls', () => {
+    const value = { ...updateDefaults(), modelSwitching: 'true' as const, instructionProfile: 'minimal' as const, modelFamilies: ['astra' as const, 'k3.1' as const], customModels: ['provider/custom-v1'], exceptionsMode: 'replace' as const };
+    expect(decode(encode({ config: value, runner: 'aikit', shell: 'posix' }))?.config).toEqual(value);
+    expect(decode('run=aikit&exceptions=replace')?.config.exceptionsMode).toBe('add');
   });
 
   it('keeps --allow-downgrade out of new-installation links', () => {

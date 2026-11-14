@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { doctorFix, flagsCommand, flagsOutputProblem, installCommand, installOptions, invocation, mcpReport, sessionSetup, upgradeCommand } from '../src/domain/command';
+import { doctorFix, flagsCommand, flagsOutputProblem, installCommand, installOptions, invocation, mcpReport, routeModelArgs, sessionSetup, taskCommand, taskProblem, upgradeCommand, type TaskRequest } from '../src/domain/command';
 import { UPSTREAM } from '../src/data/upstream';
 import { freshDefaults, updateDefaults, type Config } from '../src/domain/config';
 import { quote } from '../src/domain/shell';
@@ -115,6 +115,43 @@ describe('install commands', () => {
     for (const path of ['-x', 'docs/', '.', '..', 'a\u0007b']) expect(flagsOutputProblem('aikit', 'posix', path)).toBe('invalid');
     for (const path of ['/tmp/flags.json', 'C:\\flags.json', '../flags.json']) expect(flagsOutputProblem('docker', 'posix', path)).toBe('docker-path');
     expect(flagsOutputProblem('aikit', 'powershell', 'a"b.json')).toBe('powershell-quote');
+  });
+
+  it('emits model controls: a new list, appended protections, a replacement or a clear', () => {
+    const fresh = config({ preset: '', agents: [], modelSwitching: 'true', instructionProfile: 'minimal', modelFamilies: ['fable', 'astra'], customModels: ['provider/model v2'] });
+    expect(installOptions(fresh)).toEqual(['--model-switching-enabled', 'true', '--instruction-profile', 'minimal', '--model-switching-exceptions', 'astra', 'fable', 'provider/model v2']);
+    expect(installCommand(fresh, 'aikit', 'posix', 'preview')).toBe("aikit install . --model-switching-enabled true --instruction-profile minimal --model-switching-exceptions astra fable 'provider/model v2'");
+    const update = { ...updateDefaults(), customModels: ['provider/custom-model-v1', 'k3.1'] };
+    // Typed entries keep their order, as the installer does; checked families come first.
+    expect(installOptions(update)).toEqual(['--protect-model', 'provider/custom-model-v1', '--protect-model', 'k3.1']);
+    expect(installOptions({ ...update, exceptionsMode: 'replace' })).toEqual(['--model-switching-exceptions', 'provider/custom-model-v1', 'k3.1']);
+    expect(installOptions({ ...updateDefaults(), exceptionsMode: 'replace' })).toEqual(['--model-switching-exceptions', 'none']);
+    expect(installOptions(updateDefaults())).toEqual([]);
+    expect(installOptions(config({ extras: ['task-workflow'] }))).toContain('--with-task-workflow');
+  });
+
+  it('builds aikit task commands', () => {
+    const request: TaskRequest = { action: 'create', json: 'ai-kit/task.example.json', taskId: 'catalog-filter', checkId: 'feature-tests', to: 'implementing', apply: false };
+    expect(taskCommand('module', 'powershell', '.', request)).toBe('python -m aikit.aikit_cli task create . --from-json ai-kit/task.example.json');
+    expect(taskCommand('aikit', 'posix', '.', { ...request, action: 'transition', apply: true })).toBe('aikit task transition . --task-id catalog-filter --to implementing --apply');
+    expect(taskCommand('aikit', 'posix', '.', { ...request, action: 'check' })).toBe('aikit task check . --task-id catalog-filter --check-id feature-tests');
+    expect(taskCommand('aikit', 'posix', '.', { ...request, action: 'status', apply: true })).toBe('aikit task status . --task-id catalog-filter');
+    expect(taskCommand('aikit', 'posix', '.', { ...request, action: 'accept', json: 'ai-kit/.tasks/reviews/catalog-filter.json' }))
+      .toBe('aikit task accept . --task-id catalog-filter --from-json ai-kit/.tasks/reviews/catalog-filter.json');
+    expect(taskCommand('docker', 'posix', '.', request)).toBe('docker run "${runtime[@]}" --mount "type=bind,source=$app_path,target=/workspace,readonly" "$image" task create /workspace --from-json /workspace/ai-kit/task.example.json');
+    expect(taskCommand('docker', 'posix', '.', { ...request, apply: true })).toContain('target=/workspace" "$image" task create /workspace --from-json /workspace/ai-kit/task.example.json --apply');
+    expect(taskProblem('aikit', 'posix', { ...request, action: 'status', taskId: 'Bad ID' })).toBe('task-id');
+    expect(taskProblem('aikit', 'posix', { ...request, action: 'status', taskId: 'con' })).toBe('task-id');
+    expect(taskProblem('aikit', 'posix', { ...request, action: 'check', checkId: '' })).toBe('check-id');
+    expect(taskProblem('docker', 'posix', { ...request, json: '../task.json' })).toBe('docker-path');
+    expect(taskProblem('aikit', 'posix', { ...request, json: 'ai-kit/' })).toBe('json');
+    expect(taskProblem('aikit', 'posix', request)).toBeNull();
+  });
+
+  it('adds a declared or preserved model to route', () => {
+    expect(routeModelArgs('', 'Astra', 'posix')).toEqual([]);
+    expect(routeModelArgs('current', 'Astra', 'posix')).toEqual(['--current-model', 'Astra']);
+    expect(routeModelArgs('preserve', 'provider/custom model', 'powershell')).toEqual(['--preserve-model', "'provider/custom model'"]);
   });
 
   it('prepares session variables only where needed', () => {

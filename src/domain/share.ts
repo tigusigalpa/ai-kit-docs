@@ -1,5 +1,5 @@
-import { AGENTS, DOCKER_CLEANUP, EXTRAS, PRESETS, type Agent, type DockerCleanup, type Extra, type Preset } from '../data/catalog';
-import { allowsDowngrade, freshDefaults, RUNNERS, sortAgents, sortExtras, updateDefaults, type Config, type Runner } from './config';
+import { AGENTS, DOCKER_CLEANUP, EXTRAS, MODEL_EXCEPTIONS_MAX, MODEL_FAMILIES, PRESETS, type Agent, type DockerCleanup, type Extra, type ModelFamily, type Preset } from '../data/catalog';
+import { allowsDowngrade, freshDefaults, modelExceptions, RUNNERS, sortAgents, sortExtras, sortFamilies, updateDefaults, type Config, type Runner } from './config';
 import type { Shell } from './shell';
 
 export interface Shared { config: Config; runner: Runner; shell: Shell }
@@ -23,6 +23,10 @@ export function encode({ config, runner, shell }: Shared): string {
   if (!config.check) params.set('check', '0');
   config.acceptLocal.forEach(path => params.append('accept', path));
   if (allowsDowngrade(config)) params.set('downgrade', '1');
+  if (config.modelSwitching) params.set('models', config.modelSwitching);
+  if (config.instructionProfile) params.set('profile', config.instructionProfile);
+  modelExceptions(config).forEach(entry => params.append('protect', entry));
+  if (config.scenario === 'update' && config.exceptionsMode === 'replace') params.set('exceptions', 'replace');
   return params.toString();
 }
 
@@ -55,5 +59,13 @@ export function decode(query: string): Shared | null {
   config.acceptLocal = params.getAll('accept').slice(0, 20).map(path => path.slice(0, 300));
   // A deliberate downgrade only makes sense for an existing installation.
   config.allowDowngrade = config.scenario === 'update' && params.get('downgrade') === '1';
+  const models = params.get('models');
+  if (models === 'true' || models === 'false') config.modelSwitching = models;
+  const profile = params.get('profile');
+  if (profile === 'full' || profile === 'minimal') config.instructionProfile = profile;
+  const entries = params.getAll('protect').slice(0, MODEL_EXCEPTIONS_MAX).map(entry => entry.slice(0, 200));
+  config.modelFamilies = sortFamilies(entries.filter((entry): entry is ModelFamily => (MODEL_FAMILIES as readonly string[]).includes(entry)));
+  config.customModels = entries.filter(entry => !(MODEL_FAMILIES as readonly string[]).includes(entry));
+  if (config.scenario === 'update' && params.get('exceptions') === 'replace') config.exceptionsMode = 'replace';
   return { config, runner, shell };
 }

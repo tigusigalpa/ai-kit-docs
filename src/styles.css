@@ -291,6 +291,8 @@ select.text-input { appearance: auto; }
 .agent-chip[data-checked='true'] { border-color: var(--accent); background: var(--accent-soft); }
 .agent-chip[data-checked='true'] .agent-mark { background: var(--accent); color: var(--accent-ink); }
 .agent-chip[data-checked='true'] .agent-check { opacity: 1; }
+.family-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+.field-label.sub-label { margin-top: 8px; font-size: 13.5px; color: var(--ink-2); }
 .preset-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
 .preset-card { position: relative; display: flex; flex-direction: column; gap: 6px; padding: 13px; border-radius: 13px; border: 1px solid var(--line); background: var(--bg); cursor: pointer; }
 .preset-card:hover { border-color: var(--line-strong); }

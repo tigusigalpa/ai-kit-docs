@@ -16,7 +16,8 @@ from pathlib import Path
 
 AGENTS = ["aider", "claude", "cline", "codex", "copilot", "cursor", "devin", "gemini", "kimi", "manus", "roo", "windsurf"]
 EXTRAS = ["session-start", "guards", "data-guards", "native-settings", "scoped-rules", "ci",
-          "security-audit", "strix", "context7", "web-design", "orchestration", "uuid", "claude-github"]
+          "security-audit", "strix", "context7", "web-design", "orchestration", "uuid", "claude-github",
+          "task-workflow"]
 MODES = ["private", "team"]
 
 

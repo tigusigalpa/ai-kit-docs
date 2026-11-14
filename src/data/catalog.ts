@@ -1,4 +1,4 @@
-// Installer vocabulary of AI-KIT 1.6.0 (scripts/install.py, integrations/agents.json and integrations/installer-flags.json).
+// Installer vocabulary of AI-KIT 1.9.0 (scripts/install.py, integrations/agents.json and integrations/installer-flags.json).
 export type Text = readonly [english: string, russian: string];
 
 export const AGENTS = ['codex', 'claude', 'cursor', 'copilot', 'gemini', 'devin', 'cline', 'roo', 'aider', 'kimi', 'manus', 'windsurf'] as const;
@@ -24,11 +24,11 @@ export const AGENT_INFO: Record<Agent, { name: string; installs: Text; bootstrap
 };
 
 export const PRESET_EXTRAS = ['session-start', 'guards', 'data-guards', 'native-settings', 'scoped-rules'] as const;
-export const MODULE_EXTRAS = ['ci', 'security-audit', 'strix', 'context7', 'web-design', 'orchestration', 'uuid', 'claude-github'] as const;
+export const MODULE_EXTRAS = ['ci', 'security-audit', 'strix', 'context7', 'web-design', 'orchestration', 'uuid', 'claude-github', 'task-workflow'] as const;
 // Order of EXTRA_SETTINGS_KEYS in install.py; settings.json keys follow it.
-export const EXTRAS = ['session-start', 'guards', 'data-guards', 'native-settings', 'scoped-rules', 'ci', 'security-audit', 'strix', 'context7', 'web-design', 'orchestration', 'uuid', 'claude-github'] as const;
+export const EXTRAS = ['session-start', 'guards', 'data-guards', 'native-settings', 'scoped-rules', 'ci', 'security-audit', 'strix', 'context7', 'web-design', 'orchestration', 'uuid', 'claude-github', 'task-workflow'] as const;
 /** Extras whose false value the settings template already holds, right after chat_language. */
-export const TEMPLATE_EXTRAS: readonly Extra[] = ['uuid', 'claude-github'];
+export const TEMPLATE_EXTRAS: readonly Extra[] = ['uuid', 'claude-github', 'task-workflow'];
 export type Extra = typeof EXTRAS[number];
 
 export const settingsKey = (extra: Extra) => extra.replaceAll('-', '_');
@@ -104,7 +104,24 @@ export const EXTRA_INFO: Record<Extra, { title: Text; adds: Text; note: Text; ne
     note: ['Needs Claude selected. No login, Git config change, commit or push during installation. Every Claude install already keeps human authorship and drops Claude’s commit-credit trailer.', 'Нужен выбранный Claude. При установке нет входа, изменения Git-настроек, коммита и push. Любая установка Claude и так сохраняет ваше авторство и убирает приписку Claude в коммитах.'],
     needs: 'claude',
   },
+  'task-workflow': {
+    title: ['Task workflow', 'Задачи и проверки'],
+    adds: ['ai-kit/TASK-WORKFLOW.md, an example task JSON and aikit task: objectives, acceptance criteria and local checks bound to the exact code version, with explicit states up to acceptance.', 'ai-kit/TASK-WORKFLOW.md, пример задачи в JSON и команда aikit task: цели, критерии приёмки и локальные проверки, привязанные к точной версии кода, с явными состояниями до приёмки.'],
+    note: ['Off by default and independent of presets. Installation runs no check or agent; checks run locally with your permissions, not in a sandbox. History stays private in ai-kit/.tasks/.', 'По умолчанию выключено и не зависит от пресетов. Установка не запускает проверки и агентов; проверки идут локально с вашими правами, без песочницы. История хранится приватно в ai-kit/.tasks/.'],
+  },
 };
+
+/** Built-in protected model families of --model-switching-exceptions; other entries match an exact name or ID. */
+export const MODEL_FAMILIES = ['astra', 'fable', 'k3.1'] as const;
+export type ModelFamily = typeof MODEL_FAMILIES[number];
+export const MODEL_FAMILY_INFO: Record<ModelFamily, { name: string; vendor: string }> = {
+  astra: { name: 'Astra', vendor: 'OpenAI' },
+  fable: { name: 'Fable', vendor: 'Anthropic' },
+  'k3.1': { name: 'K3.1', vendor: 'Kimi' },
+};
+/** Installer limits for model exception entries. */
+export const MODEL_EXCEPTIONS_MAX = 32;
+export const MODEL_NAME_MAX = 160;
 
 // --docker-cleanup values; an absent docker_cleanup setting means maximum.
 export const DOCKER_CLEANUP = ['maximum', 'keep-cache'] as const;
