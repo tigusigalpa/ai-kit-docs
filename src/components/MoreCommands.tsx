@@ -1,13 +1,13 @@
 import { useId, useState, type ReactNode } from 'react';
-import { FLAGS_COMMAND, guideLink, imageAtLeast, MCP_REPORT_AND_DOWNGRADE_GUARD, UPSTREAM } from '../data/upstream';
-import { doctorFix, flagsCommand, flagsOutputProblem, invocation, mcpReport, sessionSetup, targetToken, versionCommand, type Mount } from '../domain/command';
+import { FLAGS_COMMAND, guideLink, imageAtLeast, MCP_REPORT_AND_DOWNGRADE_GUARD, MODEL_EXCEPTIONS, readmeLink, TASK_WORKFLOW, UPSTREAM } from '../data/upstream';
+import { doctorFix, flagsCommand, flagsOutputProblem, invocation, mcpReport, routeModelArgs, sessionSetup, targetToken, TASK_ACTIONS, TASK_STATES, taskCommand, taskProblem, versionCommand, type Mount, type TaskAction, type TaskState } from '../domain/command';
 import type { Runner } from '../domain/config';
 import { hasControlCharacters, quote, type Shell } from '../domain/shell';
 import type { T } from '../i18n';
 import { CodeBlock, Segmented } from './CodeBlock';
 import { Icon } from './Icon';
 
-type Tool = 'doctor' | 'mcp' | 'route' | 'context' | 'providers' | 'flags' | 'check';
+type Tool = 'doctor' | 'mcp' | 'task' | 'route' | 'context' | 'providers' | 'flags' | 'check';
 const ROUTE_MODES = ['', 'manual', 'fixed', 'recommended', 'adaptive'] as const;
 const PROFILES = ['', 'economy', 'balanced', 'quality'] as const;
 const WORKFLOWS = ['', 'web-design', 'ui-review', 'design-extract'] as const;
@@ -25,6 +25,14 @@ export function MoreCommands({ runner, shell, target, t }: { runner: Runner; she
   const [workflow, setWorkflow] = useState<typeof WORKFLOWS[number]>('');
   const [toFile, setToFile] = useState(false);
   const [output, setOutput] = useState('installer-flags.json');
+  const [modelIntent, setModelIntent] = useState<'' | 'current' | 'preserve'>('');
+  const [modelName, setModelName] = useState('');
+  const [taskAction, setTaskAction] = useState<TaskAction>('create');
+  const [taskJson, setTaskJson] = useState('ai-kit/task.example.json');
+  const [taskId, setTaskId] = useState('example-change');
+  const [checkId, setCheckId] = useState('tests');
+  const [taskTo, setTaskTo] = useState<TaskState>('implementing');
+  const [taskApply, setTaskApply] = useState(false);
   const lang = shell === 'powershell' ? 'PowerShell' : 'Bash';
   const project = targetToken(runner, target, shell);
 
@@ -79,13 +87,50 @@ export function MoreCommands({ runner, shell, target, t }: { runner: Runner; she
       break;
     case 'route': {
       if (!task.trim() || hasControlCharacters(task)) error = t('Describe the task in one line.', 'Опишите задачу одной строкой.');
+      const model = modelName.trim();
+      if (modelIntent) {
+        if (!model || model.length > 160 || hasControlCharacters(model) || model.startsWith('-')) error = t('Enter the model name or ID, up to 160 characters, not starting with a dash.', 'Укажите имя или ID модели до 160 символов, не с дефиса.');
+        else if (shell === 'powershell' && model.includes('"')) error = t('Remove double quotes: Windows PowerShell does not pass them reliably to native programs.', 'Уберите двойные кавычки: Windows PowerShell ненадёжно передаёт их внешним программам.');
+        else error ||= imageLacks(MODEL_EXCEPTIONS, modelIntent === 'current' ? 'route --current-model' : 'route --preserve-model');
+      }
       mount = withProject ? 'readonly' : 'none';
       const args = [quote(task, shell)];
       if (routeMode) args.push('--mode', routeMode);
       if (profile) args.push('--profile', profile);
+      args.push(...routeModelArgs(modelIntent, modelName, shell));
       if (withProject) args.push('--project', project);
       code = invocation(runner, shell, 'route', args, mount);
-      note = t('Offline: recommends a capability level 0–6, role and effort, and explains why. English and Russian task text work. It recommends; it never fakes a model switch.', 'Офлайн: рекомендует уровень 0–6, роль и effort и объясняет выбор. Понимает задачи на английском и русском. Только рекомендует и не имитирует переключение модели.');
+      note = <>{t('Offline: recommends a capability level 0–6, role and effort, and explains why. English and Russian task text work. It recommends; it never fakes a model switch. With --project it follows that project’s model_switching_enabled and protected models (1.8.0+).',
+        'Офлайн: рекомендует уровень 0–6, роль и effort и объясняет выбор. Понимает задачи на английском и русском. Только рекомендует и не имитирует переключение модели. С --project учитывает model_switching_enabled и защищённые модели проекта (1.8.0+).')}
+        {modelIntent === 'preserve' && t(' --preserve-model keeps that model and effort for this call only and writes nothing: the report says explicit_preservation and execution_verified false.', ' --preserve-model сохраняет эту модель и effort только для этого вызова и ничего не пишет: в отчёте explicit_preservation и execution_verified false.')}
+        {modelIntent === 'current' && t(' --current-model declares the model you are on (not telemetry): a protected model gets no model or effort advice (model_exception); other models keep the usual advice.', ' --current-model сообщает, на какой модели вы работаете (это не телеметрия): для защищённой модели советов по модели и effort нет (model_exception), для остальных советы обычные.')}{' '}
+        <a className="text-link" href={readmeLink('conditional-exceptions-and-quick-model-preservation')} target="_blank" rel="noopener noreferrer">{t('Model exceptions', 'Исключения моделей')}<Icon name="external" size={12}/></a></>;
+      break;
+    }
+    case 'task': {
+      const request = { action: taskAction, json: taskJson, taskId, checkId, to: taskTo, apply: taskApply };
+      const problem = taskProblem(runner, shell, request);
+      error = imageLacks(TASK_WORKFLOW, 'task') || (problem ? {
+        json: t('Enter the path of the task or review JSON file.', 'Укажите путь к JSON-файлу задачи или ревью.'),
+        'docker-path': t('In Docker the JSON file is read from the mounted application folder: use a relative path without ..', 'В Docker JSON-файл читается из смонтированной папки приложения: укажите относительный путь без ..'),
+        'task-id': t('Task ID: lowercase letters, digits, - and _, starting with a letter or digit, up to 64 characters.', 'ID задачи: строчные буквы, цифры, - и _, начинается с буквы или цифры, до 64 символов.'),
+        'check-id': t('Check ID: lowercase letters, digits, - and _, as declared in the task.', 'ID проверки: строчные буквы, цифры, - и _, как в описании задачи.'),
+        'powershell-quote': t('Remove double quotes: Windows PowerShell does not pass them reliably to native programs.', 'Уберите двойные кавычки: Windows PowerShell ненадёжно передаёт их внешним программам.'),
+      }[problem] : '');
+      mount = taskApply && taskAction !== 'status' ? 'writable' : 'readonly';
+      code = taskCommand(runner, shell, target, request);
+      const notes: Record<TaskAction, string> = {
+        create: t('Registers the task from its JSON definition: objective, constraints, acceptance criteria and checks as argv arrays. An identical repeat keeps the existing state.', 'Регистрирует задачу из JSON: цель, ограничения, критерии приёмки и проверки в виде массивов argv. Повтор с тем же описанием сохраняет состояние.'),
+        revise: t('Changed requirements: the same task ID gets a new revision, returns to planned and needs a new implementation and check cycle. History is kept.', 'Изменились требования: тот же ID задачи получает новую ревизию, возвращается в planned и требует нового цикла реализации и проверок. История сохраняется.'),
+        status: t('Read-only: state, revision, current fingerprint and check receipts. After a source change an accepted task shows effective_state stale.', 'Только чтение: состояние, ревизия, текущий fingerprint и квитанции проверок. После изменения кода принятая задача показывает effective_state stale.'),
+        transition: t('Moves along planned → implementing → checking → reviewing → awaiting_approval → accepted, or to failed or cancelled. Reviewing needs current passing checks.', 'Переводит по цепочке planned → implementing → checking → reviewing → awaiting_approval → accepted или в failed/cancelled. Для reviewing нужны актуальные успешные проверки.'),
+        check: t('Without --apply it prints the declared command; with --apply it runs it in the Git working tree and binds the receipt to the task revision, HEAD, index and files. Checks run locally with your permissions, not in a sandbox.', 'Без --apply печатает объявленную команду; с --apply запускает её в рабочем дереве Git и привязывает квитанцию к ревизии задачи, HEAD, индексу и файлам. Проверки идут локально с вашими правами, без песочницы.'),
+        accept: t('Accepts the exact checked version: the review JSON carries the current fingerprint, the reviewer and evidence for every criterion. Keep it under ai-kit/.tasks/reviews/ so it does not change the fingerprint. Grants no commit or deploy permission.', 'Принимает ровно проверенную версию: JSON ревью содержит текущий fingerprint, ревьюера и доказательства по каждому критерию. Храните его в ai-kit/.tasks/reviews/, чтобы он не менял fingerprint. Права на коммит и деплой не даёт.'),
+      };
+      note = <>{notes[taskAction]}{' '}
+        {t('Needs --with-task-workflow (1.7.0+) in the project. Exit codes: 0 done, 1 a check did not pass, 2 invalid input or refused.', 'Нужен --with-task-workflow (1.7.0+) в проекте. Коды выхода: 0 — готово, 1 — проверка не прошла, 2 — неверный ввод или отказ.')}
+        {runner === 'docker' && taskAction === 'check' && taskApply && t(' In Docker the check runs inside the AI-KIT image, which has Python and Git but not your project toolchain; prefer a host runner.', ' В Docker проверка выполняется внутри образа AI-KIT, где есть Python и Git, но нет инструментов вашего проекта; лучше запускать с хоста.')}{' '}
+        <a className="text-link" href={readmeLink('optional-task-workflow-requirements-states-and-checks-tied-to-code')} target="_blank" rel="noopener noreferrer">{t('Task workflow guide', 'Руководство по задачам')}<Icon name="external" size={12}/></a></>;
       break;
     }
     case 'context': {
@@ -128,7 +173,7 @@ export function MoreCommands({ runner, shell, target, t }: { runner: Runner; she
   }
   const setup = sessionSetup(runner, shell, target);
   const tools: { value: Tool; label: string }[] = [
-    { value: 'doctor', label: 'doctor' }, { value: 'mcp', label: 'mcp report' }, { value: 'route', label: 'route' },
+    { value: 'doctor', label: 'doctor' }, { value: 'mcp', label: 'mcp report' }, { value: 'task', label: 'task' }, { value: 'route', label: 'route' },
     { value: 'context', label: 'context select' }, { value: 'providers', label: 'providers' }, { value: 'flags', label: 'flags' },
     { value: 'check', label: 'check' },
   ];
@@ -136,7 +181,7 @@ export function MoreCommands({ runner, shell, target, t }: { runner: Runner; she
     <div className="section-head">
       <span className="eyebrow">{t('AFTER INSTALLATION', 'ПОСЛЕ УСТАНОВКИ')}</span>
       <h2 id="commands-title">{t('Keep the project healthy.', 'Поддерживайте проект в форме.')}</h2>
-      <p>{t('Health checks, MCP review, model routing, scoped context and the flag schema use the same runner and project folder you picked above.', 'Проверки, обзор MCP, маршрутизация моделей, выбор контекста и схема флагов используют тот же способ запуска и папку проекта, что выбраны выше.')}</p>
+      <p>{t('Health checks, MCP review, tasks with source-bound checks, model routing, scoped context and the flag schema use the same runner and project folder you picked above.', 'Проверки, обзор MCP, задачи с проверками, привязанными к коду, маршрутизация моделей, выбор контекста и схема флагов используют тот же способ запуска и папку проекта, что выбраны выше.')}</p>
     </div>
     <div className="commands-card">
       <Segmented name="tool" label={t('Command', 'Команда')} value={tool} onChange={setTool} options={tools}/>
@@ -161,8 +206,32 @@ export function MoreCommands({ runner, shell, target, t }: { runner: Runner; she
           <div className="field"><label htmlFor={`${ids}-profile`}>--profile</label>
             <select id={`${ids}-profile`} className="text-input" value={profile} onChange={event => setProfile(event.target.value as typeof profile)}>
               {PROFILES.map(value => <option key={value} value={value}>{value || t('default', 'по умолчанию')}</option>)}</select></div>
+          <div className="field"><label htmlFor={`${ids}-intent`}>{t('Model intent', 'Модель')}</label>
+            <select id={`${ids}-intent`} className="text-input" value={modelIntent} onChange={event => setModelIntent(event.target.value as typeof modelIntent)}>
+              <option value="">{t('none', 'не указывать')}</option>
+              <option value="current">--current-model</option>
+              <option value="preserve">--preserve-model</option></select></div>
+          {modelIntent && <div className="field"><label htmlFor={`${ids}-model`}>{t('Model name or ID', 'Имя или ID модели')}</label>
+            <input id={`${ids}-model`} className="text-input mono" value={modelName} maxLength={200} spellCheck={false} placeholder="Astra" onChange={event => setModelName(event.target.value)}/></div>}
           <label className="toggle-row inline"><input type="checkbox" checked={withProject} onChange={event => setWithProject(event.target.checked)}/>
-            <span><strong>{t('Use project history', 'Учитывать историю проекта')} <code>--project</code></strong></span></label>
+            <span><strong>{t('Use project settings and history', 'Учитывать настройки и историю проекта')} <code>--project</code></strong></span></label>
+        </>}
+        {tool === 'task' && <>
+          <div className="field"><label htmlFor={`${ids}-task-action`}>{t('Action', 'Действие')}</label>
+            <select id={`${ids}-task-action`} className="text-input" value={taskAction} onChange={event => setTaskAction(event.target.value as TaskAction)}>
+              {TASK_ACTIONS.map(value => <option key={value} value={value}>{value}</option>)}</select></div>
+          {taskAction !== 'create' && taskAction !== 'revise' && <div className="field"><label htmlFor={`${ids}-task-id`}>--task-id</label>
+            <input id={`${ids}-task-id`} className="text-input mono" value={taskId} maxLength={64} spellCheck={false} onChange={event => setTaskId(event.target.value.trim())}/></div>}
+          {(taskAction === 'create' || taskAction === 'revise' || taskAction === 'accept') && <div className="field"><label htmlFor={`${ids}-task-json`}>--from-json</label>
+            <input id={`${ids}-task-json`} className="text-input mono" value={taskJson} maxLength={300} spellCheck={false} onChange={event => setTaskJson(event.target.value)}/></div>}
+          {taskAction === 'transition' && <div className="field"><label htmlFor={`${ids}-task-to`}>--to</label>
+            <select id={`${ids}-task-to`} className="text-input" value={taskTo} onChange={event => setTaskTo(event.target.value as TaskState)}>
+              {TASK_STATES.map(value => <option key={value} value={value}>{value}</option>)}</select></div>}
+          {taskAction === 'check' && <div className="field"><label htmlFor={`${ids}-check-id`}>--check-id</label>
+            <input id={`${ids}-check-id`} className="text-input mono" value={checkId} maxLength={64} spellCheck={false} onChange={event => setCheckId(event.target.value.trim())}/></div>}
+          {taskAction !== 'status' && <label className="toggle-row inline"><input type="checkbox" checked={taskApply} onChange={event => setTaskApply(event.target.checked)}/>
+            <span><strong>{t('Write the state', 'Записать состояние')} <code>--apply</code></strong>
+              <small>{taskAction === 'check' ? t('Runs the declared command.', 'Запускает объявленную команду.') : t('Otherwise only a preview.', 'Иначе только preview.')}</small></span></label>}
         </>}
         {tool === 'context' && <>
           <div className="field"><label htmlFor={`${ids}-path`}>--path</label>

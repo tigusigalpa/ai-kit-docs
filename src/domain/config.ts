@@ -1,4 +1,4 @@
-import { AGENTS, EXTRAS, LEGACY_AGENTS, PRESET_EXTRAS, PRESET_INFO, settingsKey, TEMPLATE_EXTRAS, type Agent, type DockerCleanup, type Extra, type Mode, type Preset } from '../data/catalog';
+import { AGENTS, EXTRAS, LEGACY_AGENTS, MODEL_EXCEPTIONS_MAX, MODEL_FAMILIES, MODEL_NAME_MAX, PRESET_EXTRAS, PRESET_INFO, settingsKey, TEMPLATE_EXTRAS, type Agent, type ModelFamily, type DockerCleanup, type Extra, type Mode, type Preset } from '../data/catalog';
 import { imageAtLeast, OPTION_SINCE, UPSTREAM } from '../data/upstream';
 import { hasControlCharacters, type Shell } from './shell';
 
@@ -6,6 +6,9 @@ export const RUNNERS = ['aikit', 'module', 'venv', 'docker', 'source'] as const;
 export type Runner = typeof RUNNERS[number];
 export type Scenario = 'fresh' | 'update';
 export type Conventions = 'owner' | 'standard';
+export type InstructionProfile = 'full' | 'minimal';
+/** How exceptions reach the installer: --protect-model appends to the saved list, --model-switching-exceptions replaces it. */
+export type ExceptionsMode = 'add' | 'replace';
 
 export interface Config {
   scenario: Scenario;
@@ -22,11 +25,19 @@ export interface Config {
   acceptLocal: string[];
   /** --allow-downgrade: offered only when updating a project. */
   allowDowngrade: boolean;
+  /** --model-switching-enabled; '' keeps the saved value (fresh default true). */
+  modelSwitching: '' | 'true' | 'false';
+  instructionProfile: InstructionProfile | '';
+  /** Protected built-in families and exact model names/IDs (raw lines while editing). */
+  modelFamilies: ModelFamily[];
+  customModels: string[];
+  exceptionsMode: ExceptionsMode;
 }
 
 export const freshDefaults = (): Config => ({
   scenario: 'fresh', target: '.', preset: 'solo', mode: '', agents: ['codex', 'claude'], chatLanguage: '',
   conventions: '', dockerCleanup: '', extras: [], interactive: false, check: true, acceptLocal: [], allowDowngrade: false,
+  modelSwitching: '', instructionProfile: '', modelFamilies: [], customModels: [], exceptionsMode: 'add',
 });
 
 export const updateDefaults = (): Config => ({ ...freshDefaults(), scenario: 'update', preset: '', agents: [] });
@@ -35,6 +46,23 @@ export const updateDefaults = (): Config => ({ ...freshDefaults(), scenario: 'up
 export const allowsDowngrade = (config: Config) => config.allowDowngrade && config.scenario === 'update';
 
 export const sortAgents = (agents: Iterable<Agent>) => AGENTS.filter(agent => new Set(agents).has(agent));
+export const sortFamilies = (families: Iterable<ModelFamily>) => MODEL_FAMILIES.filter(family => new Set(families).has(family));
+
+/**
+ * Exception entries as the installer saves them: families first, then exact names/IDs, trimmed, built-in family
+ * names lowercased and duplicates dropped case-insensitively.
+ */
+export function modelExceptions(config: Pick<Config, 'modelFamilies' | 'customModels'>): string[] {
+  const entries: string[] = [...sortFamilies(config.modelFamilies)];
+  for (const raw of config.customModels) {
+    const value = raw.trim();
+    if (!value) continue;
+    const family = MODEL_FAMILIES.find(item => item === value.toLowerCase());
+    const entry = family ?? value;
+    if (!entries.some(item => item.toLowerCase() === entry.toLowerCase())) entries.push(entry);
+  }
+  return entries;
+}
 export const sortExtras = (extras: Iterable<Extra>) => EXTRAS.filter(extra => new Set(extras).has(extra));
 
 export interface Resolved {
@@ -47,6 +75,11 @@ export interface Resolved {
   conventions: Conventions | null;
   /** Docker cleanup mode; null keeps the saved value (an absent setting means maximum). */
   dockerCleanup: DockerCleanup | null;
+  /** Instruction controls; null keeps the saved value. */
+  modelSwitching: boolean | null;
+  instructionProfile: InstructionProfile | null;
+  /** The saved exception list after this run; null when it only appends to a list we cannot see. */
+  modelExceptions: string[] | null;
   /** Extras enabled by this run: explicit flags plus preset bundle. */
   extras: Extra[];
   presetExtras: readonly Extra[];
@@ -74,6 +107,9 @@ export function resolve(config: Config): Resolved {
     chatLanguage: config.chatLanguage.trim() ? config.chatLanguage : fresh ? 'English' : null,
     conventions: config.conventions || (fresh ? 'owner' : null),
     dockerCleanup: config.dockerCleanup || (fresh ? 'maximum' : null),
+    modelSwitching: config.modelSwitching ? config.modelSwitching === 'true' : fresh ? true : null,
+    instructionProfile: config.instructionProfile || (fresh ? 'full' : null),
+    modelExceptions: fresh || config.exceptionsMode === 'replace' ? modelExceptions(config) : null,
     extras, presetExtras, presetDisabled, extraFlags,
   };
 }
@@ -82,6 +118,10 @@ export function resolve(config: Config): Resolved {
 export function settingsPreview(config: Config): Record<string, unknown> {
   const resolved = resolve(config);
   const settings: Record<string, unknown> = {
+    // 1.8.0+ template keys lead the file.
+    model_switching_enabled: resolved.modelSwitching ?? true,
+    instruction_profile: resolved.instructionProfile ?? 'full',
+    model_switching_exceptions: resolved.modelExceptions ?? [],
     project_language: 'English',
     chat_language: resolved.chatLanguage ?? 'English',
     // The settings template holds these keys as false; enabling them keeps their position.
@@ -130,10 +170,25 @@ export function validate(config: Config, runner: Runner, shell: Shell, image: st
     }
   });
   // Windows PowerShell 5.1 drops embedded double quotes when it passes arguments to native programs.
-  if (shell === 'powershell' && [config.target, config.chatLanguage, ...config.acceptLocal].some(value => value.includes('"'))) {
+  if (shell === 'powershell' && [config.target, config.chatLanguage, ...config.acceptLocal, ...config.customModels].some(value => value.includes('"'))) {
     issues.push({ severity: 'error', code: 'powershell-quote' });
   }
   if (config.acceptLocal.length && config.scenario === 'fresh') issues.push({ severity: 'info', code: 'accept-fresh' });
+  config.customModels.forEach((raw, index) => {
+    const value = raw.trim();
+    if (value && (value.length > MODEL_NAME_MAX || hasControlCharacters(value) || value.startsWith('-') || value.toLowerCase() === 'none')) {
+      issues.push({ severity: 'error', code: 'model-name', field: 'customModels', detail: String(index + 1) });
+    }
+  });
+  const exceptions = modelExceptions(config);
+  if (exceptions.length > MODEL_EXCEPTIONS_MAX) issues.push({ severity: 'error', code: 'model-count', field: 'customModels' });
+  if (exceptions.length && resolved.modelSwitching === false) issues.push({ severity: 'info', code: 'exceptions-switching-off' });
+  if (config.scenario === 'update' && config.exceptionsMode === 'replace') {
+    issues.push({ severity: 'info', code: exceptions.length ? 'exceptions-replace' : 'exceptions-clear' });
+  }
+  if (resolved.extras.includes('orchestration') && (resolved.modelSwitching === false || exceptions.length)) {
+    issues.push({ severity: 'info', code: 'helpers-inherit' });
+  }
   const agents = resolved.agents;
   if (agents) {
     const claudeNeeded = resolved.extras.filter(extra => ['session-start', 'guards', 'data-guards', 'claude-github'].includes(extra));
@@ -166,6 +221,11 @@ export function validate(config: Config, runner: Runner, shell: Shell, image: st
       ['--with-uuid', resolved.extraFlags.includes('uuid'), 'extras'],
       ['--with-claude-github', resolved.extraFlags.includes('claude-github'), 'extras'],
       ['--agent devin', config.agents.includes('devin'), 'agents'],
+      ['--with-task-workflow', resolved.extraFlags.includes('task-workflow'), 'extras'],
+      ['--model-switching-enabled', Boolean(config.modelSwitching), 'modelSwitching'],
+      ['--instruction-profile', Boolean(config.instructionProfile), 'instructionProfile'],
+      ['--model-switching-exceptions', exceptionsOption(config) === '--model-switching-exceptions', 'customModels'],
+      ['--protect-model', exceptionsOption(config) === '--protect-model', 'customModels'],
     ];
     for (const [option, used, field] of gated) {
       if (used && !imageAtLeast(OPTION_SINCE[option], image)) issues.push({ severity: 'error', code: 'docker-option-image', field, detail: option });
@@ -175,3 +235,14 @@ export function validate(config: Config, runner: Runner, shell: Shell, image: st
 }
 
 export const hasErrors = (issues: Issue[]) => issues.some(issue => issue.severity === 'error');
+
+/**
+ * The installer option that carries the exception list, if any. A new installation sets the list; an update appends
+ * with --protect-model or replaces it, where an empty replacement is `none` and clears the saved list.
+ */
+export function exceptionsOption(config: Config): '--model-switching-exceptions' | '--protect-model' | null {
+  const entries = modelExceptions(config);
+  if (config.scenario === 'fresh') return entries.length ? '--model-switching-exceptions' : null;
+  if (config.exceptionsMode === 'replace') return '--model-switching-exceptions';
+  return entries.length ? '--protect-model' : null;
+}

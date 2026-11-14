@@ -1,6 +1,6 @@
 import { CLEANUP_AND_FIX_PREVIEW, imageAtLeast, UPSTREAM } from '../data/upstream';
 import { PRESET_INFO } from '../data/catalog';
-import { allowsDowngrade, isAbsolutePath, resolve, sortAgents, type Config, type Runner } from './config';
+import { allowsDowngrade, exceptionsOption, isAbsolutePath, modelExceptions, resolve, sortAgents, type Config, type Runner } from './config';
 import { hasControlCharacters, literal, quote, type Shell } from './shell';
 
 export type Mount = 'none' | 'readonly' | 'writable';
@@ -41,6 +41,12 @@ export function installOptions(config: Config): string[] {
   if (config.chatLanguage.trim()) args.push('--chat-language', config.chatLanguage);
   if (config.conventions) args.push('--conventions', config.conventions);
   if (config.dockerCleanup) args.push('--docker-cleanup', config.dockerCleanup);
+  if (config.modelSwitching) args.push('--model-switching-enabled', config.modelSwitching);
+  if (config.instructionProfile) args.push('--instruction-profile', config.instructionProfile);
+  const exceptions = modelExceptions(config);
+  const exceptionsFlag = exceptionsOption(config);
+  if (exceptionsFlag === '--protect-model') for (const entry of exceptions) args.push('--protect-model', entry);
+  else if (exceptionsFlag) args.push('--model-switching-exceptions', ...(exceptions.length ? exceptions : ['none']));
   for (const extra of resolved.extraFlags) args.push(`--with-${extra}`);
   for (const path of config.acceptLocal.map(value => value.trim()).filter(Boolean)) args.push('--accept-local', path);
   if (allowsDowngrade(config)) args.push('--allow-downgrade');
@@ -135,3 +141,49 @@ export function flagsOutputProblem(runner: Runner, shell: Shell, output: string)
   if (shell === 'powershell' && path.includes('"')) return 'powershell-quote';
   return null;
 }
+
+export const TASK_ACTIONS = ['create', 'revise', 'status', 'transition', 'check', 'accept'] as const;
+export type TaskAction = typeof TASK_ACTIONS[number];
+export const TASK_STATES = ['planned', 'implementing', 'checking', 'reviewing', 'awaiting_approval', 'accepted', 'failed', 'cancelled'] as const;
+export type TaskState = typeof TASK_STATES[number];
+export interface TaskRequest { action: TaskAction; json: string; taskId: string; checkId: string; to: TaskState; apply: boolean }
+
+const TASK_ID = /^[a-z0-9][a-z0-9_-]{0,63}$/;
+const RESERVED_ID = /^(con|prn|aux|nul|com[0-9]|lpt[0-9])$/;
+const usesJson = (action: TaskAction) => action === 'create' || action === 'revise' || action === 'accept';
+const usesTaskId = (action: TaskAction) => action !== 'create' && action !== 'revise';
+
+/** Why a task request cannot be generated, or null when it can. */
+export function taskProblem(runner: Runner, shell: Shell, request: TaskRequest): 'json' | 'docker-path' | 'task-id' | 'check-id' | 'powershell-quote' | null {
+  const json = request.json.trim();
+  if (usesJson(request.action)) {
+    if (!json || hasControlCharacters(json) || json.startsWith('-') || /(^|[\\/])\.{0,2}$/.test(json)) return 'json';
+    if (runner === 'docker' && (isAbsolutePath(json) || json.split(/[\\/]/).includes('..'))) return 'docker-path';
+    if (shell === 'powershell' && json.includes('"')) return 'powershell-quote';
+  }
+  const valid = (id: string) => TASK_ID.test(id) && !RESERVED_ID.test(id);
+  if (usesTaskId(request.action) && !valid(request.taskId)) return 'task-id';
+  if (request.action === 'check' && !valid(request.checkId)) return 'check-id';
+  return null;
+}
+
+/**
+ * `aikit task ACTION`: every mutation previews without --apply, status is read-only. Docker reads the definition
+ * from the mounted folder and needs a writable mount only to apply.
+ */
+export function taskCommand(runner: Runner, shell: Shell, target: string, request: TaskRequest) {
+  const args = [targetToken(runner, target, shell)];
+  const json = request.json.trim();
+  const jsonArg = runner === 'docker' ? `/workspace/${json.replaceAll('\\', '/').replace(/^(\.\/)+/, '')}` : json;
+  if (usesTaskId(request.action)) args.push('--task-id', request.taskId);
+  if (usesJson(request.action)) args.push('--from-json', quote(jsonArg, shell));
+  if (request.action === 'transition') args.push('--to', request.to);
+  if (request.action === 'check') args.push('--check-id', request.checkId);
+  const apply = request.apply && request.action !== 'status';
+  if (apply) args.push('--apply');
+  return invocation(runner, shell, `task ${request.action}`, args, apply ? 'writable' : 'readonly');
+}
+
+/** Optional model intent for `aikit route`: a declared current model or a one-call preservation. */
+export const routeModelArgs = (intent: '' | 'current' | 'preserve', model: string, shell: Shell) =>
+  !intent || !model.trim() ? [] : [intent === 'current' ? '--current-model' : '--preserve-model', quote(model.trim(), shell)];

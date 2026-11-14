@@ -1,7 +1,7 @@
 import { useId, type ReactNode } from 'react';
-import { AGENT_INFO, AGENTS, CURRENT_AGENTS, DOCKER_CLEANUP_INFO, EXTRA_INFO, LANGUAGE_SUGGESTIONS, MODULE_EXTRAS, PRESET_EXTRAS, PRESET_INFO, PRESETS, type Agent, type Extra, type Preset } from '../data/catalog';
-import { guideLink, sourceLink } from '../data/upstream';
-import { freshDefaults, resolve, sortAgents, sortExtras, updateDefaults, validate, type Config, type Runner } from '../domain/config';
+import { AGENT_INFO, AGENTS, CURRENT_AGENTS, DOCKER_CLEANUP_INFO, MODEL_FAMILIES, MODEL_FAMILY_INFO, EXTRA_INFO, LANGUAGE_SUGGESTIONS, MODULE_EXTRAS, PRESET_EXTRAS, PRESET_INFO, PRESETS, type Agent, type Extra, type Preset } from '../data/catalog';
+import { guideLink, readmeLink, sourceLink } from '../data/upstream';
+import { freshDefaults, modelExceptions, resolve, sortAgents, sortExtras, sortFamilies, updateDefaults, validate, type Config, type Runner } from '../domain/config';
 import type { Shell } from '../domain/shell';
 import { pick, type Language, type T } from '../i18n';
 import { Segmented } from './CodeBlock';
@@ -177,7 +177,56 @@ export function Configurator({ config, onChange, runner, shell, onRunner, onShel
           </div>
         </Group>
 
-        <Group index="05" title={t('Optional extras', 'Дополнительные модули')}
+        <Group index="05" title={t('Model advice and instruction depth', 'Советы по модели и глубина инструкций')}
+          hint={t('AI-KIT never switches or locks the model of your chat: pick the model and effort in your client. These settings only control AI-KIT’s own advice, managed helper files and how much guidance agents load.',
+            'AI-KIT не переключает и не фиксирует модель вашего чата: модель и effort выбираются в клиенте. Эти настройки управляют только советами самого AI-KIT, управляемыми файлами помощников и объёмом инструкций.')}>
+          <div className="two-fields">
+            <div className="field">
+              <span className="field-label">{t('Model recommendations', 'Рекомендации моделей')} <code>--model-switching-enabled</code></span>
+              <Segmented name="model-switching" label={t('Model recommendations', 'Рекомендации моделей')} value={config.modelSwitching || 'auto'}
+                invalid={Boolean(fieldError('modelSwitching'))} onChange={value => set({ modelSwitching: value === 'auto' ? '' : value })}
+                options={[{ value: 'auto', label: fresh ? t('Default (on)', 'По умолч. (вкл)') : t('Keep saved', 'Как есть') }, { value: 'true', label: 'true' }, { value: 'false', label: 'false' }]}/>
+              <p className="field-hint">{resolved.modelSwitching === false
+                ? t('false: no model or effort advice from AI-KIT, including cheaper models for savings; managed Codex helpers get no fixed model or effort.', 'false: никаких советов AI-KIT по модели и effort, в том числе о более дешёвых моделях; управляемые помощники Codex не получают фиксированных модели и effort.')
+                : resolved.modelSwitching ? t('true: offline routing advice stays available, except for protected models below.', 'true: офлайн-советы маршрутизации остаются, кроме защищённых моделей ниже.')
+                  : t('The saved value is kept; an installation without it behaves as true.', 'Сохранённое значение не меняется; без настройки действует true.')}</p>
+            </div>
+            <div className="field">
+              <span className="field-label">{t('Instruction depth', 'Глубина инструкций')} <code>--instruction-profile</code></span>
+              <Segmented name="instruction-profile" label={t('Instruction depth', 'Глубина инструкций')} value={config.instructionProfile || 'auto'}
+                invalid={Boolean(fieldError('instructionProfile'))} onChange={value => set({ instructionProfile: value === 'auto' ? '' : value })}
+                options={[{ value: 'auto', label: fresh ? t('Default (full)', 'По умолч. (full)') : t('Keep saved', 'Как есть') }, { value: 'full', label: 'full' }, { value: 'minimal', label: 'minimal' }]}/>
+              <p className="field-hint">{resolved.instructionProfile === 'minimal'
+                ? t('minimal: mandatory project and nested rules, architecture, security, stack rules and critical checks; no unsolicited workflows, extra roles or cost optimization. Not the same as --preset minimal.', 'minimal: обязательные правила проекта и вложенные правила, архитектура, безопасность, правила стека и критичные проверки; без непрошеных сценариев, лишних ролей и экономии. Это не то же, что --preset minimal.')
+                : t('full: all conditional guidance and workflows, as in earlier releases.', 'full: все условные инструкции и сценарии, как в прежних версиях.')}</p>
+            </div>
+          </div>
+          <div className="field inline-field">
+            <span className="field-label">{t('Protected models', 'Защищённые модели')} <code>{config.scenario === 'update' && config.exceptionsMode === 'add' ? '--protect-model' : '--model-switching-exceptions'}</code></span>
+            <div className="agent-grid family-grid">
+              {MODEL_FAMILIES.map(family => {
+                const checked = config.modelFamilies.includes(family);
+                return <label key={family} className="agent-chip" data-checked={checked}>
+                  <input type="checkbox" checked={checked} onChange={() => set({ modelFamilies: checked ? config.modelFamilies.filter(item => item !== family) : sortFamilies([...config.modelFamilies, family]) })}/>
+                  <span className="agent-name">{MODEL_FAMILY_INFO[family].name}<code>{family} · {MODEL_FAMILY_INFO[family].vendor}</code></span>
+                  <Icon name="check" size={15} className="agent-check"/>
+                </label>;
+              })}
+            </div>
+            <label className="field-label sub-label" htmlFor={`${ids}-models`}>{t('Exact model names or IDs, one per line', 'Точные имена или ID моделей, по одному на строку')}</label>
+            <textarea id={`${ids}-models`} className="text-input mono" rows={2} spellCheck={false} placeholder="provider/custom-model-v1"
+              aria-invalid={Boolean(fieldError('customModels'))}
+              value={config.customModels.join('\n')} onChange={event => set({ customModels: event.target.value.split('\n').slice(0, 40) })}/>
+            {!fresh && <Segmented name="exceptions-mode" label={t('Saved protected models', 'Сохранённые защищённые модели')} value={config.exceptionsMode} onChange={value => set({ exceptionsMode: value })}
+              options={[{ value: 'add', label: t('Add to saved', 'Добавить к сохранённым') }, { value: 'replace', label: t('Replace saved list', 'Заменить весь список') }]}/>}
+            <p className="field-hint">{t('When you say you are on a protected model, AI-KIT keeps your model and effort and gives no switching advice. Families accept their display names and version IDs; other entries match exactly. A preference, not proof that the model exists or ran. ',
+              'Когда вы указываете, что работаете на защищённой модели, AI-KIT сохраняет вашу модель и effort и не советует переключаться. Семейства узнают свои названия и версии; остальные записи сравниваются точно. Это предпочтение, а не доказательство, что модель существует или реально работала. ')}
+              {modelExceptions(config).length > 0 && <>{t('Saved as model_switching_exceptions: ', 'Сохраняется в model_switching_exceptions: ')}<code>{modelExceptions(config).join(', ')}</code>. </>}
+              <a className="text-link" href={readmeLink('conditional-exceptions-and-quick-model-preservation')} target="_blank" rel="noopener noreferrer">{t('How exceptions work', 'Как работают исключения')}<Icon name="external" size={12}/></a></p>
+          </div>
+        </Group>
+
+        <Group index="06" title={t('Optional extras', 'Дополнительные модули')}
           hint={fresh ? t('All switches. Selections persist in ai-kit/settings.json after apply.', 'Все — переключатели. После apply выбор сохраняется в ai-kit/settings.json.')
             : t('Omitting a flag on update does not disable a module; there are no --without-* flags.', 'Если не указать флаг при обновлении, модуль не выключится; флагов --without-* нет.')}>
           <h3 className="list-title">{t('Preset-managed', 'Управляются пресетами')}</h3>
@@ -187,7 +236,7 @@ export function Configurator({ config, onChange, runner, shell, onRunner, onShel
         </Group>
 
         <details className="config-group advanced">
-          <summary><span className="group-index">06</span>{t('Advanced', 'Дополнительно')}<Icon name="chevron" size={16}/></summary>
+          <summary><span className="group-index">07</span>{t('Advanced', 'Дополнительно')}<Icon name="chevron" size={16}/></summary>
           <label className="toggle-row">
             <input type="checkbox" checked={config.check} onChange={event => set({ check: event.target.checked })}/>
             <span><strong>{t('Run the doctor after apply', 'Запустить doctor после apply')} <code>--check</code></strong>

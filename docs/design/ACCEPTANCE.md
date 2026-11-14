@@ -71,6 +71,23 @@ Required states added by this update:
 | Browser console | No errors |
 | Automated: `npm test` | 94 Vitest tests: 24 installer previews and 10 applies through the real AI-KIT 1.6.0 release commit (including `uuid`, `claude-github`, `devin`), flag comparison with `--help` and `installer-flags.json`, the installer's claude-github and Devin/Windsurf warnings, `aikit flags`, `aikit mcp report`, `doctor --fix` and the downgrade guard |
 
+## Evidence — 2026-11-14, AI-KIT 1.9.0 update
+
+Required states added by this update:
+
+- Group 05 "Model advice and instruction depth": `--model-switching-enabled` and `--instruction-profile` (default/keep, true/false, full/minimal) with explanations; protected models as Astra/Fable/K3.1 chips plus exact names/IDs; in an update, "Add to saved" (`--protect-model`) or "Replace saved list" (`--model-switching-exceptions`, `none` when empty). Extras and Advanced move to 06 and 07.
+- `--with-task-workflow` in the independent modules; `settings.json` preview with the three model keys first and `task_workflow` after `claude_github`.
+- More commands: `task` (create, revise, status, transition, check, accept) and `route` with `--current-model` or `--preserve-model`.
+- Reference 32 / 32 flags, release note, routing and task-workflow cards, model-switching FAQ entry.
+
+| Check | Result |
+| --- | --- |
+| Share link: update, `models=false`, `profile=minimal`, protected `astra`, `fable`, `provider/custom-model-v1`, task workflow and orchestration (local dev server, Russian UI, 1440×900) | Preview/apply with `--protect-model` per entry; notes on switching off and helper inheritance; groups numbered 01–07 |
+| More commands, `task` | `task create . --from-json ai-kit/task.example.json` and `task check . --task-id example-change --check-id tests` with their notes |
+| 375×812 phone | No element overflows the viewport |
+| Browser console | No errors |
+| Automated: `npm run check` | ESLint clean; 107 Vitest tests, including 26 previews and 12 applies through the real AI-KIT 1.9.0 release commit (model controls and task workflow), saved exceptions appended, replaced and cleared on update, and the generated `task` and `route --preserve-model` commands run through the CLI; production build succeeds |
+
 ## Not verified
 
 - Screen-reader walkthrough and a full keyboard-only pass.

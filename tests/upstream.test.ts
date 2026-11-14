@@ -8,7 +8,7 @@ import { afterAll, describe, expect, it } from 'vitest';
 import { MAIN_FLAGS, MODULE_FLAGS } from '../src/components/Reference';
 import { AGENTS, DOCKER_CLEANUP, EXTRAS, PRESET_INFO, PRESETS, settingsKey, type Agent, type Extra } from '../src/data/catalog';
 import { UPSTREAM } from '../src/data/upstream';
-import { flagsCommand, installOptions, mcpReport } from '../src/domain/command';
+import { flagsCommand, installOptions, mcpReport, routeModelArgs, taskCommand } from '../src/domain/command';
 import { freshDefaults, resolve, settingsPreview, updateDefaults, type Config } from '../src/domain/config';
 import { footprint } from '../src/domain/footprint';
 
@@ -66,6 +66,8 @@ const scenarios: [string, Config][] = [
   ['1.6.0 options', { ...freshDefaults(), preset: 'strict', agents: ['codex', 'claude', 'devin'], extras: ['uuid', 'claude-github', 'web-design'], chatLanguage: 'Russian' }],
   ['devin and legacy windsurf', { ...freshDefaults(), preset: 'team', agents: ['devin', 'windsurf', 'cursor'], extras: ['uuid'] }],
   ['claude-github without claude', { ...freshDefaults(), preset: '', agents: ['codex'], extras: ['claude-github'] }],
+  ['model controls', { ...freshDefaults(), modelSwitching: 'false', instructionProfile: 'minimal', modelFamilies: ['astra', 'fable', 'k3.1'], customModels: ['provider/custom-model-v1', 'Fable'], extras: ['task-workflow', 'orchestration'] }],
+  ['task workflow with switching on', { ...freshDefaults(), preset: 'team', modelSwitching: 'true', instructionProfile: 'full', customModels: ['my model v2'], extras: ['task-workflow'] }],
   ...[...sample(14)].map((config, index): [string, Config] => [`sample ${index + 1}`, config]),
 ];
 
@@ -87,11 +89,46 @@ describe.skipIf(!available)(`AI-KIT ${UPSTREAM.version} installer`, () => {
     expect(plan.writes).toEqual(footprint(resolved.agents ?? ['codex'], resolved.extras, resolved.mode ?? 'private'));
   });
 
-  it.each(scenarios.slice(0, 10))('apply writes the predicted settings.json: %s', (_name, config) => {
+  it.each(scenarios.slice(0, 12))('apply writes the predicted settings.json: %s', (_name, config) => {
     const { status, target } = run(config, true);
     expect(status).toBe(0);
     const written = readFileSync(join(target, 'ai-kit', 'settings.json'), 'utf8');
     expect(JSON.stringify(JSON.parse(written))).toBe(JSON.stringify(settingsPreview(config)));
+  });
+
+  it('appends, replaces and clears saved protected models on update', () => {
+    const { status, target } = run({ ...freshDefaults(), modelFamilies: ['fable'] }, true);
+    expect(status).toBe(0);
+    const saved = () => JSON.parse(readFileSync(join(target, 'ai-kit', 'settings.json'), 'utf8')).model_switching_exceptions;
+    expect(saved()).toEqual(['fable']);
+    expect(runIn(target, { ...updateDefaults(), customModels: ['provider/custom-model-v1', 'FABLE'] }, true).status).toBe(0);
+    expect(saved()).toEqual(['fable', 'provider/custom-model-v1']);
+    expect(runIn(target, { ...updateDefaults(), exceptionsMode: 'replace', modelFamilies: ['k3.1'] }, true).status).toBe(0);
+    expect(saved()).toEqual(['k3.1']);
+    expect(runIn(target, { ...updateDefaults(), exceptionsMode: 'replace' }, true).status).toBe(0);
+    expect(saved()).toEqual([]);
+  });
+
+  it('runs generated task and route commands', () => {
+    const { status, target } = run({ ...freshDefaults(), extras: ['task-workflow'] }, true);
+    expect(status).toBe(0);
+    const git = (...args: string[]) => execFileSync('git', ['-C', target, ...args], { encoding: 'utf8' });
+    git('init', '-q');
+    git('add', '-A');
+    git('-c', 'user.name=docs', '-c', 'user.email=docs@example.invalid', 'commit', '-qm', 'init');
+    const request = { action: 'create' as const, json: 'ai-kit/task.example.json', taskId: 'example-change', checkId: 'tests', to: 'implementing' as const, apply: false };
+    // Generated commands use TARGET "." from the project folder; run them with cwd set to the project.
+    const inProject = (command: string) => spawnSync(python, ['-I', '-S', cli, ...command.split(' ').slice(1)], { encoding: 'utf8', cwd: target });
+    const preview = inProject(taskCommand('aikit', 'posix', '.', request));
+    expect(preview.stderr).toBe('');
+    expect(JSON.parse(preview.stdout)).toMatchObject({ preview: true, task_id: 'example-change', state: 'planned' });
+    expect(inProject(taskCommand('aikit', 'posix', '.', { ...request, apply: true })).status).toBe(0);
+    expect(inProject(taskCommand('aikit', 'posix', '.', { ...request, action: 'transition', apply: true })).status).toBe(0);
+    const state = JSON.parse(inProject(taskCommand('aikit', 'posix', '.', { ...request, action: 'status' })).stdout);
+    expect(JSON.stringify(state)).toContain('implementing');
+    const routed = JSON.parse(aikit('route', 'Investigate the regression', ...routeModelArgs('preserve', 'provider/custom-model-v1', 'posix')).stdout);
+    expect(routed).toMatchObject({ recommendations_enabled: false });
+    expect(JSON.stringify(routed)).toContain('explicit_preservation');
   });
 
   it('reports the 1.6.0 client warnings the configurator mirrors', () => {
@@ -111,7 +148,7 @@ describe.skipIf(!available)(`AI-KIT ${UPSTREAM.version} installer`, () => {
     const documented = [...MAIN_FLAGS, ...MODULE_FLAGS].map(row => row.flag).filter(flag => flag !== 'TARGET')
       .map(flag => flag === '-h, --help' ? '-h' : flag).sort();
     expect(documented).toEqual(accepted);
-    expect(MAIN_FLAGS.length + MODULE_FLAGS.length).toBe(27);
+    expect(MAIN_FLAGS.length + MODULE_FLAGS.length).toBe(32);
     const choices = Object.fromEntries([...usage.matchAll(/(--[a-z-]+) \{([^}]+)\}/g)].map(match => [match[1], match[2].split(',')]));
     expect(choices['--docker-cleanup']).toEqual([...DOCKER_CLEANUP]);
     expect(choices['--preset']).toEqual([...PRESETS]);
@@ -151,7 +188,10 @@ describe.skipIf(!available)(`AI-KIT ${UPSTREAM.version} installer`, () => {
     }
     expect(options.TARGET).toMatchObject({ value: 'path', required: true });
     expect(options['--apply'].excludes).toEqual(['--dry-run']);
-    expect(schema.options.filter(option => option.repeatable).map(option => option.option).sort()).toEqual(['--accept-local', '--agent']);
+    expect(schema.options.filter(option => option.repeatable).map(option => option.option).sort()).toEqual(['--accept-local', '--agent', '--protect-model']);
+    expect(schema.options.filter(option => (option as { multiple_values?: boolean }).multiple_values).map(option => option.option)).toEqual(['--model-switching-exceptions']);
+    expect(options['--model-switching-enabled'].choices).toEqual(['true', 'false']);
+    expect(options['--instruction-profile'].choices).toEqual(['full', 'minimal']);
     expect(options['--mode'].choices).toEqual(['private', 'team']);
     expect(options['--conventions'].choices).toEqual(['owner', 'standard']);
     expect(options['--docker-cleanup'].choices).toEqual([...DOCKER_CLEANUP]);
